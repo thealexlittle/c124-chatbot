@@ -183,10 +183,37 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        ids = []
-        for id in range(self.titles):
-            if title == self.titles[id]:
-                ids.append(id)
+        # Rearrange input title to match database entries
+        # Changes the input title to resemble the database entry: <Title>, *An or The* (Year)
+        # ex. The Notebook (2004) -> Notebook, The (2004) 
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return title.split(w, 1)[1] + ", " + w
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+        
+        # Compare the year of two titles (input, database) to see if they match. 
+        # if no year was given for the input title, then ignore this check.
+        def compare_years(t1,t2):
+            t1_y = re.search(r'\(([0-9]+)\)', t1)
+            if t1_y == None:
+                return True
+            t2_y = re.search(r'\(([0-9]+)\)', t2)
+            return t1_y.group(0) == t2_y.group(0)
+
+        # Handle the case that an input title begins with "An" or "The" 
+        if title.find('The ') == 0:
+            title = rearrange('The ',title)
+        if title.find('An ') == 0:
+            title = rearrange("An ", title)
+
+        ids = []    
+        # Iterate through databse and add matching movies to the resulting array
+        for id in range(len(self.titles)):
+            if title in self.titles[id][0]:
+                if compare_years(title, self.titles[id][0]): 
+                    ids.append(id)
         return ids
 
     def extract_sentiment(self, preprocessed_input):

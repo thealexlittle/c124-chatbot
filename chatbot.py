@@ -327,11 +327,19 @@ class Chatbot:
         ########################################################################
         # TODO: Compute cosine similarity between the two vectors.             #
         ########################################################################
-        similarity = 0
+        # find the indices that are common aka don't have 0 
+        u_sum = 0
+        v_sum = 0
+        numerator = 0
+        for i in range(len(u)):
+            if u[i] != 0 and v[i] != 0:
+                u_sum += u[i]
+                v_sum += v[i]
+                numerator += (u[i] * v[i])
+        return numerator / (math.sqrt(u_sum) * math.sqrt(v_sum))
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
-        return similarity
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
         """Generate a list of indices of movies to recommend using collaborative
@@ -370,8 +378,26 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
+        similarities = [][]
         recommendations = []
-
+        # compute all the similarities
+        for i in range(len(ratings_matrix)):
+            for j in range(len(ratings_matrix[i])):
+                if i != j:
+                    cos_sim = similarity(ratings_matrix[i], ratings_matrix[j])
+                    similarities[i][j] = similarity
+        # find the user's projected rating for each movie 
+        projected_ratings = []
+        for i in range(len(ratings_matrix)):
+            projected_rating = 0
+            for j in range(len(ratings_matrix)):
+                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
+                    continue
+                projected_rating += (similarities[i][j] * user_ratings[j])
+            projected_ratings.append(projected_rating)
+        projected_ratings = projected_ratings.sort(reverse=True)
+        for i in range(k):
+            recommendations.append(projected_ratings[i])
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################

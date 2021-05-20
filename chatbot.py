@@ -3,7 +3,8 @@
 # Original Python code by Ignacio Cases (@cases)
 ######################################################################
 import util
-
+import re
+import math
 import numpy as np
 
 
@@ -158,6 +159,10 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
+        if self.creative is False:
+            input_titles = re.findall(r'"([^"]*)"', preprocessed_input)
+            return input_titles
+
         return []
 
     def find_movies_by_title(self, title):
@@ -178,7 +183,11 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        return []
+        ids = []
+        for id in range(self.titles):
+            if title == self.titles[id]:
+                ids.append(id)
+        return ids
 
     def extract_sentiment(self, preprocessed_input):
         
@@ -207,12 +216,12 @@ class Chatbot:
         neg_count = 0
         neg_list = ["no", "not", "rather", "couldn’t", "wasn’t", "didn’t", "wouldn’t", "shouldn’t", "weren’t", "don’t", "doesn’t", "haven’t", "hasn’t", "won’t", "wont", "hadn’t", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn’t", "can’t", "cannot", "mustn’t", "mightn’t", "shan’t", "without", "needn’t"]
         for word in split_input:
-            if word in neg_list: """if word in neg_list but ends in comma, negate would be positive again so no need to strip comma here"""
-                negate = -1 """or have negate * -1"""
+            if word in neg_list: # if word in neg_list but ends in comma, negate would be positive again so no need to strip comma here
+                negate = -1  # or have negate * -1
             else:
-                has_comma = false
+                has_comma = False
                 if word.endswith(","):
-                    has_comma = true
+                    has_comma = True
                     word = word.rstrip(",")
                 if word in self.sentiment:
                     if self.sentiment[word] == "pos":
@@ -403,14 +412,14 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        similarities = [][]
+        similarities = [[]]
         recommendations = []
         # compute all the similarities
         for i in range(len(ratings_matrix)):
             for j in range(len(ratings_matrix[i])):
                 if i != j:
-                    cos_sim = similarity(ratings_matrix[i], ratings_matrix[j])
-                    similarities[i][j] = similarity
+                    cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
+                    similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
         for i in range(len(ratings_matrix)):

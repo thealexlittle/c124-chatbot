@@ -24,13 +24,18 @@ class Chatbot:
         # movie i by user j
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
+        #numpy array
+        self.user_ratings = np.zeros(len(self.titles))
+        self.recommendations = []
+        self.recommendation_counter = 0
+        self.input_counter = 0
 
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
 
         # Binarize the movie ratings before storing the binarized matrix.
-        self.ratings = ratings
+        self.ratings = self.binarize(ratings)
         ########################################################################
         #                             END OF YOUR CODE                         #
         ########################################################################
@@ -66,6 +71,9 @@ class Chatbot:
         #                          END OF YOUR CODE                            #
         ########################################################################
         return goodbye_message
+    
+    def prompt_for_info(self):
+        return 'please tell me more'
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -101,11 +109,46 @@ class Chatbot:
             response = "I processed {} in creative mode!!".format(line)
         else:
             response = "I processed {} in starter mode!!".format(line)
+        # if the user says yes and dict is large enough, supply a recommendation
+        #if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+        if line[0].lower() == 'y':
+            self.recommend_movie()
+        input_titles = self.extract_titles(line)
+        if len(input_titles) == 0:
+            return 'response that title was not found / only supply one' 
+        input_sentiment = self.extract_sentiment(line)
+        if input_sentiment == 0:
+            return "response that the chat-bot doesn't know how they feel about the movie"
+        # need to change to work for all lower
+        title_indices = self.find_movies_by_title(input_titles[0])
+        print(title_indices)
+        if len(title_indices) > 1 or len(title_indices) == 0:
+            return 'response for the user to clarify what movie' 
+        self.user_ratings[title_indices[0]] = input_sentiment
+        self.input_counter += 1
+        if self.input_counter < 5:
+            # prompt user for more info
+            return self.prompt_for_info()
+        else:
+            # do some array magic
 
+            self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
+            self.recommend_movie()
+            # read first recommendation to the user
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
         return response
+
+    def recommend_movie(self):
+        # check if there are any more recommendations 
+        if self.recommendation_counter < len(self.recommendations):
+            recommended_movie = self.recommendations[recommendation_counter]
+            return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
+        else:
+            # prompt for more info 
+            return self.prompt_for_info()
+        "" 
 
     @staticmethod
     def preprocess(text):
@@ -237,7 +280,7 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
-        split_input = preprocessed_input.split().lower()
+        split_input = preprocessed_input.lower().split()
         negate = 1
         pos_count = 0
         neg_count = 0
@@ -247,6 +290,7 @@ class Chatbot:
                 negate = -1  # or have negate * -1
             else:
                 has_comma = False
+                # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
                     word = word.rstrip(",")
@@ -368,7 +412,13 @@ class Chatbot:
 
         # The starter code returns a new matrix shaped like ratings but full of
         # zeros.
-        binarized_ratings = np.zeros_like(ratings)
+        for i in range(len(ratings)):
+          movie = ratings[i]
+          for user in range(len(movie)):
+              if movie[user] == 0:
+                continue 
+              ratings[i][user]= 1 if movie[user] > threshold else -1
+        binarized_ratings = ratings
 
         ########################################################################
         #                        END OF YOUR CODE                              #
@@ -394,9 +444,11 @@ class Chatbot:
         numerator = 0
         for i in range(len(u)):
             if u[i] != 0 and v[i] != 0:
-                u_sum += u[i]
-                v_sum += v[i]
+                u_sum += (u[i] ** 2)
+                v_sum += (v[i] ** 2)
                 numerator += (u[i] * v[i])
+        if u_sum == 0 or v_sum == 0:
+            return 0
         return numerator / (math.sqrt(u_sum) * math.sqrt(v_sum))
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -439,16 +491,20 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        similarities = [[]]
+        similarities = np.zeros((len(self.ratings), len(self.ratings)))
         recommendations = []
         # compute all the similarities
+        print('COMPUTING SIMILARITIES')
         for i in range(len(ratings_matrix)):
-            for j in range(len(ratings_matrix[i])):
+            if user_ratings[i] == 0:
+                continue
+            for j in range(len(ratings_matrix)):
                 if i != j:
                     cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
                     similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
+        print('FINDING RATINGS!')
         for i in range(len(ratings_matrix)):
             projected_rating = 0
             for j in range(len(ratings_matrix)):

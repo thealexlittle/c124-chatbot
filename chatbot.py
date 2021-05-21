@@ -133,7 +133,7 @@ class Chatbot:
             # do some array magic
 
             self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
-            self.recommend_movie()
+            return self.recommend_movie()
             # read first recommendation to the user
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -143,7 +143,8 @@ class Chatbot:
     def recommend_movie(self):
         # check if there are any more recommendations 
         if self.recommendation_counter < len(self.recommendations):
-            recommended_movie = self.recommendations[recommendation_counter]
+            recommended_movie = self.recommendations[self.recommendation_counter]
+            recommended_movie = self.titles[recommended_movie][0]
             return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
             # prompt for more info 
@@ -506,15 +507,20 @@ class Chatbot:
         projected_ratings = []
         print('FINDING RATINGS!')
         for i in range(len(ratings_matrix)):
+            # want to calculate projected ratings for each movie 
             projected_rating = 0
             for j in range(len(ratings_matrix)):
-                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
+                # compare the movie to every other movie
+                # check that there is a similarity score computed + that the user has rated movie j
+                if i == j or user_ratings[i] == 0 or user_ratings[j] == 0:
                     continue
                 projected_rating += (similarities[i][j] * user_ratings[j])
-            projected_ratings.append(projected_rating)
-        projected_ratings = projected_ratings.sort(reverse=True)
+            projected_ratings.append((projected_rating, i))
+            # need to also keep track of the indices of the movies
+            # do tuples, and sort by the rating, but then insert the indices into the index 
+        projected_ratings.sort(key=lambda tup: tup[0], reverse=True)
         for i in range(k):
-            recommendations.append(projected_ratings[i])
+            recommendations.append(projected_ratings[i][1])
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################

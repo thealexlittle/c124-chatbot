@@ -112,7 +112,7 @@ class Chatbot:
         # if the user says yes and dict is large enough, supply a recommendation
         #if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
         if line[0].lower() == 'y':
-            self.recommend_movie()
+            return self.recommend_movie()
         input_titles = self.extract_titles(line)
         if len(input_titles) == 0:
             return 'response that title was not found / only supply one' 

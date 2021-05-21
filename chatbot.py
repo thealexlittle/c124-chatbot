@@ -120,11 +120,10 @@ class Chatbot:
         if input_sentiment == 0:
             return "response that the chat-bot doesn't know how they feel about the movie"
         # need to change to work for all lower
-        title_indices = self.find_movies_by_title(input_titles[0])
-        print(title_indices)
-        if len(title_indices) > 1 or len(title_indices) == 0:
-            return 'response for the user to clarify what movie' 
-        self.user_ratings[title_indices[0]] = input_sentiment
+        title_ids = self.find_movies_by_title(input_titles[0])
+        print(title_ids)
+        for i in range(len(title_ids)):
+            self.user_ratings[title_ids[i]] = input_sentiment
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info
@@ -146,7 +145,7 @@ class Chatbot:
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
             self.recommendation_counter += 1
-            return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
+            return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
             # prompt for more info 
             return self.prompt_for_info()
@@ -243,9 +242,9 @@ class Chatbot:
         def compare_years(t1,t2):
             t1_y = re.search(r'\(([0-9]+)\)', t1)
             if t1_y == None:
-                return True
+                return t1.lower().strip() == t2[:t2.rfind('(')].lower().strip()
             t2_y = re.search(r'\(([0-9]+)\)', t2)
-            return t1_y.group(0) == t2_y.group(0)
+            return t1_y.group(1) == t2_y.group(1)
 
         # Handle the case that an input title begins with "An" or "The" 
         if title.find('The ') == 0:
@@ -256,9 +255,10 @@ class Chatbot:
         ids = []    
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
-            if title in self.titles[id][0]:
+            if title.lower() in self.titles[id][0].lower():
                 if compare_years(title, self.titles[id][0]): 
                     ids.append(id)
+        
         return ids
 
     def extract_sentiment(self, preprocessed_input):

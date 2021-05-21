@@ -145,6 +145,7 @@ class Chatbot:
         if self.recommendation_counter < len(self.recommendations):
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
+            self.recommendation_counter += 1
             return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
             # prompt for more info 

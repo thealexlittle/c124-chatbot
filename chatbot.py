@@ -296,10 +296,13 @@ class Chatbot:
         pos_count = 0
         neg_count = 0
         in_quotes = False
-        neg_list = ["no", "not", "rather", "couldn’t", "wasn’t", "didn’t", "wouldn’t", "shouldn’t", "weren’t", "don’t", "doesn’t", "haven’t", "hasn’t", "won’t", "wont", "hadn’t", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn’t", "can’t", "cannot", "mustn’t", "mightn’t", "shan’t", "without", "needn’t"]
+        neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
         for word in split_input:
+            word = word.strip()
             word_no_comma = word.rstrip(",")
             stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
+            if stem.endswith('i'):
+                stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
             if word.endswith("\""):
@@ -307,18 +310,24 @@ class Chatbot:
                 continue
             if in_quotes:
                 continue
-            if stem in neg_list and !word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
+            if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
+                print('NEGATED!')
                 negate = -1  # or have negate * -1
             else:
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
-                if stem in self.sentiment:
-                    if self.sentiment[word] == "pos":
+                if word_no_comma in self.sentiment:
+                    if self.sentiment[word_no_comma] == "pos":
                         pos_count += (1 * negate)
                     else:
                         neg_count += (1 * negate)
+                elif stem in self.sentiment:
+                    if self.sentiment[stem] == "pos":
+                        pos_count += (1 * negate)
+                    else:
+                        neg_count += (1 * negate)   
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:

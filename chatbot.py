@@ -6,6 +6,7 @@ import util
 import re
 import math
 import numpy as np
+from porter_stemmer import PorterStemmer
 
 
 # noinspection PyMethodMayBeStatic
@@ -289,6 +290,7 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
+        stemmer = PorterStemmer()
         split_input = preprocessed_input.lower().split()
         negate = 1
         pos_count = 0
@@ -296,21 +298,23 @@ class Chatbot:
         in_quotes = False
         neg_list = ["no", "not", "rather", "couldn’t", "wasn’t", "didn’t", "wouldn’t", "shouldn’t", "weren’t", "don’t", "doesn’t", "haven’t", "hasn’t", "won’t", "wont", "hadn’t", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn’t", "can’t", "cannot", "mustn’t", "mightn’t", "shan’t", "without", "needn’t"]
         for word in split_input:
+            word_no_comma = word.rstrip(",")
+            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
             if word.startswith("\""):
                 in_quotes = True
-            elif word.endswith("\""):
+            if word.endswith("\""):
                 in_quotes = False
-            elif in_quotes:
                 continue
-            elif word in neg_list: # if word in neg_list but ends in comma, negate would be positive again so no need to strip comma here
+            if in_quotes:
+                continue
+            if stem in neg_list and !word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
                 negate = -1  # or have negate * -1
             else:
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
-                    word = word.rstrip(",")
-                if word in self.sentiment:
+                if stem in self.sentiment:
                     if self.sentiment[word] == "pos":
                         pos_count += (1 * negate)
                     else:

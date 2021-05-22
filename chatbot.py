@@ -74,7 +74,15 @@ class Chatbot:
         return goodbye_message
     
     def prompt_for_info(self):
-        return 'please tell me more'
+        return 'Tell me about another movie you have seen.'
+
+    def echo_sentiment(self, sentiment, title):
+        phrase = ''
+        if sentiment == 1:
+            phrase = 'You liked'
+        else:
+            phrase = 'You did not like'
+        return phrase + ' "' + title + '". Thank you!\n'
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -112,30 +120,29 @@ class Chatbot:
             response = "I processed {} in starter mode!!".format(line)
         # if the user says yes and dict is large enough, supply a recommendation
         #if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
-        if line[0].lower() == 'y':
+        if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
         if len(input_titles) == 0:
-            return 'response that title was not found / only supply one' 
+            return "Sorry, I don't understand. Tell me about a movie that you have seen."
+        if len(input_titles) > 1:
+            return "Please tell me about one movie at a time. Go ahead."
+        # handle case of when they are updating their rating (want to do -=1 for counter)
         input_sentiment = self.extract_sentiment(line)
         if input_sentiment == 0:
-            return "response that the chat-bot doesn't know how they feel about the movie"
+            return "I'm sorry, I'm not quite sure if you liked \"" + input_titles[0] + "\". \n Tell me more about \"" + input_titles[0] + '".'
         # need to change to work for all lower
-        title_indices = self.find_movies_by_title(input_titles[0])
-        print(title_indices)
-        if len(title_indices) > 1 or len(title_indices) == 0:
-            return 'response for the user to clarify what movie' 
-        self.user_ratings[title_indices[0]] = input_sentiment
+        title_ids = self.find_movies_by_title(input_titles[0])
+        print(title_ids)
+        for i in range(len(title_ids)):
+            self.user_ratings[title_ids[i]] = input_sentiment
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info
-            return self.prompt_for_info()
+            return self.echo_sentiment(input_sentiment, input_titles[0]) + self.prompt_for_info()
         else:
-            # do some array magic
-
             self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
-            return self.recommend_movie()
-            # read first recommendation to the user
+            return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
@@ -147,9 +154,8 @@ class Chatbot:
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
             self.recommendation_counter += 1
-            return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
+            return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
-            # prompt for more info 
             return self.prompt_for_info()
         "" 
 
@@ -244,9 +250,9 @@ class Chatbot:
         def compare_years(t1,t2):
             t1_y = re.search(r'\(([0-9]+)\)', t1)
             if t1_y == None:
-                return True
+                return t1.lower().strip() == t2[:t2.rfind('(')].lower().strip()
             t2_y = re.search(r'\(([0-9]+)\)', t2)
-            return t1_y.group(0) == t2_y.group(0)
+            return t1_y.group(1) == t2_y.group(1)
 
         # Handle the case that an input title begins with "An" or "The" 
         if title.find('The ') == 0:
@@ -257,9 +263,10 @@ class Chatbot:
         ids = []    
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
-            if title in self.titles[id][0]:
+            if title.lower() in self.titles[id][0].lower():
                 if compare_years(title, self.titles[id][0]): 
                     ids.append(id)
+        
         return ids
 
     def extract_sentiment(self, preprocessed_input):
@@ -524,7 +531,7 @@ class Chatbot:
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
-                if i == j or user_ratings[i] == 0 or user_ratings[j] == 0:
+                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
                     continue
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))

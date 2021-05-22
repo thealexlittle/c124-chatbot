@@ -286,9 +286,16 @@ class Chatbot:
         negate = 1
         pos_count = 0
         neg_count = 0
+        in_quotes = False
         neg_list = ["no", "not", "rather", "couldn’t", "wasn’t", "didn’t", "wouldn’t", "shouldn’t", "weren’t", "don’t", "doesn’t", "haven’t", "hasn’t", "won’t", "wont", "hadn’t", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn’t", "can’t", "cannot", "mustn’t", "mightn’t", "shan’t", "without", "needn’t"]
         for word in split_input:
-            if word in neg_list: # if word in neg_list but ends in comma, negate would be positive again so no need to strip comma here
+            if word.startswith("\""):
+                in_quotes = True
+            elif word.endswith("\""):
+                in_quotes = False
+            elif in_quotes:
+                continue
+            elif word in neg_list: # if word in neg_list but ends in comma, negate would be positive again so no need to strip comma here
                 negate = -1  # or have negate * -1
             else:
                 has_comma = False

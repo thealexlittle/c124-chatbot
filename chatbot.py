@@ -146,7 +146,7 @@ class Chatbot:
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
             self.recommendation_counter += 1
-            return 'u wld like' + recommended_movie + '. wld u like to hear another recommendation?'
+            return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
             # prompt for more info 
             return self.prompt_for_info()
@@ -520,7 +520,7 @@ class Chatbot:
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
-                if i == j or user_ratings[i] == 0 or user_ratings[j] == 0:
+                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
                     continue
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))

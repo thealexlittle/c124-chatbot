@@ -311,7 +311,6 @@ class Chatbot:
             if in_quotes:
                 continue
             if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
-                print('NEGATED!')
                 negate = -1  # or have negate * -1
             else:
                 has_comma = False
@@ -541,12 +540,13 @@ class Chatbot:
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
                 if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
-                    continue
+                    continue        
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))
             # need to also keep track of the indices of the movies
             # do tuples, and sort by the rating, but then insert the indices into the index 
         projected_ratings.sort(key=lambda tup: tup[0], reverse=True)
+        print(projected_ratings)
         for i in range(k):
             recommendations.append(projected_ratings[i][1])
         ########################################################################

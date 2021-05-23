@@ -382,7 +382,70 @@ class Chatbot:
         and within edit distance max_distance
         """
 
+        # get length of title N
+        # for every other title 
+            # get length of title M
+
+            #create an empty numpy array of shape NM 
+            #array[i][0] = i 
+            #array[0][j] = j 
+
+                # for i ... n 
+                    #for j ... m 
+                        #array[i][j] = min 
+                        #min of array[i-1][j] + 1
+                        #or array[i][j-1] + 1
+                        #or array[i-1][j-1] + 2 if title[i] \neq other_title[j] but 0 otherwise 
+
+        
+        #get titles from self.titles
+        titles = ["asdfgh", "light", "drk"]
+
+        length_first = len(title)
+        title_rev =  title[::-1]
+        distances = []
+     
+        for other_title in titles:
+          #access index 0 of the other_title field to get the name
+            length_second = len(other_title)
+          #get index of movie
+
+            arr= np.zeros((length_first+1, length_second+1))
+            
+            for i in range(length_first+1):
+                arr[i][0]= length_first - i 
+
+            for i in range(length_second+1):
+                arr[length_first][i]= i 
+
+            
+            for i in range(length_first-1, -1, -1): 
+                for j in range(1,length_second+1):
+                    left = arr[i][j-1] + 1
+                    bottom = arr[i+1][j] + 1
+                    diagonal = arr[i+1][j-1]
+
+                    if title_rev[i] != other_title[j-1]:
+                        diagonal += 2
+
+                    arr[i][j] = min(left, bottom, diagonal)
+
+            distance = arr[0][length_second]
+            #add to the tuple the index of the movie
+            distance_betweeen = (distance, other_title)
+            distances.append(distance_betweeen)
+
+        distances = sorted(distances, key = lambda x: x[0])     
+        print(distances)
+            
+            
+
+
+
+
         pass
+
+
 
     def disambiguate(self, clarification, candidates):
         """Creative Feature: Given a list of movies that the user could be

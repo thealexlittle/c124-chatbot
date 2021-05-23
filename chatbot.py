@@ -447,7 +447,11 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
-        pass
+        ids = []
+        for candidate in candidates:
+            if clarification in self.titles[candidate][0]:
+                ids.append(candidate)
+        return ids
 
     ############################################################################
     # 3. Movie Recommendation helper functions                                 #

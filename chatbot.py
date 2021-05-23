@@ -216,25 +216,38 @@ class Chatbot:
             input_titles = re.findall(r'"([^"]*)"', preprocessed_input)
             return input_titles
 
-        def check_titles(substr):
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return title.split(w, 1)[1] + ", " + w
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+
+        def check_titles(title):
+            if title.find('the ') == 0:
+                title = rearrange('the ',title)
+            if title.find('an ') == 0:
+                title = rearrange("an ", title)
             for id in range(len(self.titles)):
-                title = self.titles[id][0].lower().split("(")[0]
-                if substr.lower() in title:
+                db_title = self.titles[id][0].lower().split("(")[0]
+                if title == db_title.strip():
                     return True
 
-        # tokens = preprocessed_input.split()
-        # size = 1
-        # res = []
+        tokens = preprocessed_input.lower().split()
+        size = 1
+        res = [] 
 
-        # while size > len(tokens):    
-        #     for i in range(len(tokens)):
-        #         substr = tokens[i:i+size]
-        #         if 
+        while size < len(tokens):    
+            for i in range(len(tokens)):
+                substr = " ".join(tokens[i:i+size])
+                if size == 1 and tokens[i] in ['i', 'a']:
+                    continue
 
-                        
-            
+                if check_titles(substr) and substr not in res:
+                        res.append(substr)
+            size += 1
 
-        return []
+        return res
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
@@ -259,7 +272,7 @@ class Chatbot:
         # ex. The Notebook (2004) -> Notebook, The (2004) 
         def rearrange(w, title):
             if title.find("(") == -1:
-                return title.split(w, 1)[1] + ", " + w
+                return (title.split(w, 1)[1] + ", " + w).strip()
             title = title.split(w,1)[1]
             year_index = title.find("(")
             return title[:year_index-1] + ", "+ w + title[year_index:]
@@ -269,20 +282,28 @@ class Chatbot:
         def compare_years(t1,t2):
             t1_y = re.search(r'\(([0-9]+)\)', t1)
             if t1_y == None:
-                return t1.lower().strip() == t2[:t2.rfind('(')].lower().strip()
+                s_t1, s_t2 = t1.lower().strip(), t2.lower().split("(")[0].strip()
+                if s_t1 in s_t2:
+                    return s_t1.split()[0] == s_t2.split()[0]
+                else:
+                    alt_t2 = re.search(r'\(([\w][\D][^(]+)\)',t2)
+                    if alt_t2 is not None:
+                        return t1.lower().strip() in alt_t2.group(1).lower().strip()                    
+                    return False
+                    
             t2_y = re.search(r'\(([0-9]+)\)', t2)
             return t1_y.group(1) == t2_y.group(1)
 
         # Handle the case that an input title begins with "An" or "The" 
-        if title.find('The ') == 0:
-            title = rearrange('The ',title)
-        if title.find('An ') == 0:
-            title = rearrange("An ", title)
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ']:
+            if title.find(w) == 0:
+                title = rearrange(w, title)
 
         ids = []    
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
             if title.lower() in self.titles[id][0].lower():
+                print(self.titles[id][0])
                 if compare_years(title, self.titles[id][0]): 
                     ids.append(id)
         

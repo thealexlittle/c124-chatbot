@@ -449,6 +449,8 @@ class Chatbot:
         """
         ids = []
         for candidate in candidates:
+            # Check without year if year not given 
+            # Check with year if year is given
             if clarification in self.titles[candidate][0]:
                 ids.append(candidate)
         return ids

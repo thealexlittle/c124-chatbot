@@ -25,7 +25,7 @@ class Chatbot:
         # movie i by user j
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-        #numpy array
+        # numpy array
         self.user_ratings = np.zeros(len(self.titles))
         self.recommendations = []
         self.recommendation_counter = 0
@@ -72,7 +72,7 @@ class Chatbot:
         #                          END OF YOUR CODE                            #
         ########################################################################
         return goodbye_message
-    
+
     def prompt_for_info(self):
         return 'Tell me about another movie you have seen.'
 
@@ -119,7 +119,7 @@ class Chatbot:
         else:
             response = "I processed {} in starter mode!!".format(line)
         # if the user says yes and dict is large enough, supply a recommendation
-        #if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+        # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
@@ -141,7 +141,8 @@ class Chatbot:
             # prompt user for more info
             return self.echo_sentiment(input_sentiment, input_titles[0]) + self.prompt_for_info()
         else:
-            self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
+            self.recommendations.extend(self.recommend(
+                np.array(self.user_ratings), self.ratings))
             return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -149,7 +150,7 @@ class Chatbot:
         return response
 
     def recommend_movie(self):
-        # check if there are any more recommendations 
+        # check if there are any more recommendations
         if self.recommendation_counter < len(self.recommendations):
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
@@ -157,7 +158,7 @@ class Chatbot:
             return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
             return self.prompt_for_info()
-        "" 
+        ""
 
     @staticmethod
     def preprocess(text):
@@ -214,6 +215,24 @@ class Chatbot:
         if self.creative is False:
             input_titles = re.findall(r'"([^"]*)"', preprocessed_input)
             return input_titles
+
+        def check_titles(substr):
+            for id in range(len(self.titles)):
+                title = self.titles[id][0].lower().split("(")[0]
+                if substr.lower() in title:
+                    return True
+
+        # tokens = preprocessed_input.split()
+        # size = 1
+        # res = []
+
+        # while size > len(tokens):    
+        #     for i in range(len(tokens)):
+        #         substr = tokens[i:i+size]
+        #         if 
+
+                        
+            
 
         return []
 

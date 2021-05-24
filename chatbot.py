@@ -78,7 +78,7 @@ class Chatbot:
 
     def echo_sentiment(self, sentiment, title):
         phrase = ''
-        if sentiment == 1:
+        if sentiment > 0:
             phrase = 'You liked'
         else:
             phrase = 'You did not like'
@@ -339,7 +339,9 @@ class Chatbot:
         pos_count = 0
         neg_count = 0
         in_quotes = False
+        power = 1
         neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
+        power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
             word_no_comma = word.rstrip(",")
@@ -348,8 +350,10 @@ class Chatbot:
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
-            if word.endswith("\""):
+            if word.endswith("\"") or "\"" in word:
                 in_quotes = False
+                if self.creative and word.endswith("!"):
+                    power = 2
                 continue
             if in_quotes:
                 continue
@@ -360,6 +364,9 @@ class Chatbot:
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
+                if self.creative:
+                    if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
+                        power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
                         pos_count += (1 * negate)
@@ -373,9 +380,9 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:
-            return 1
+            return 1 * power
         elif pos_count < neg_count:
-            return -1
+            return -1 * power
         return 0
 
     def extract_sentiment_for_movies(self, preprocessed_input):
@@ -425,7 +432,74 @@ class Chatbot:
         and within edit distance max_distance
         """
 
-        pass
+        # get length of title N
+        # for every other title 
+            # get length of title M
+
+            #create an empty numpy array of shape NM 
+            #array[i][0] = i 
+            #array[0][j] = j 
+
+                # for i ... n 
+                    #for j ... m 
+                        #array[i][j] = min 
+                        #min of array[i-1][j] + 1
+                        #or array[i][j-1] + 1
+                        #or array[i-1][j-1] + 2 if title[i] \neq other_title[j] but 0 otherwise 
+
+        
+        #get titles from self.titles
+        #titles = ["asdfgh", "light", "drk"]
+        titles = self.titles
+
+        length_first = len(title)
+        title_rev =  title[::-1]
+        distances = []
+     
+        for i in range(len(titles)):
+          #access index 1 of the other_title field to get the name
+            other_title = titles[i]
+            length_second = len(other_title[1])
+            index = i
+          #get index of movie
+
+            arr= np.zeros((length_first+1, length_second+1))
+            
+            for i in range(length_first+1):
+                arr[i][0]= length_first - i 
+
+            for i in range(length_second+1):
+                arr[length_first][i]= i 
+
+            
+            for i in range(length_first-1, -1, -1): 
+                for j in range(1,length_second+1):
+                    left = arr[i][j-1] + 1
+                    bottom = arr[i+1][j] + 1
+                    diagonal = arr[i+1][j-1]
+
+                    if title_rev[i] != other_title[j-1]:
+                        diagonal += 2
+
+                    arr[i][j] = min(left, bottom, diagonal)
+
+            distance = arr[0][length_second]
+            #add to the tuple the index of the movie
+            if(distance <= max_distance):
+                distance_betweeen = (distance, other_title,index)
+                distances.append(distance_betweeen)
+
+        distances = sorted(distances, key = lambda x: x[0])
+
+        if (len(distances) != 0 ):
+            minimum = distances[0][2]
+            final_list = [x[2] for x in distances if x[0] == minimum]
+            return final_list
+
+        else: 
+            return []
+
+
 
     def disambiguate(self, clarification, candidates):
         """Creative Feature: Given a list of movies that the user could be

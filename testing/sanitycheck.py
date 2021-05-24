@@ -141,7 +141,7 @@ def test_find_movies_by_title():
         ('Titanic (1997)', [1359]),
         ('An American in Paris (1951)', [721]),
         ('The Notebook (1220)', []),
-        ('Scream', [1142]),
+        ('Scream', [1142, 546, 1357, 2629]),
     ]
 
     tests_passed = True

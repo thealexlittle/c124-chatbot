@@ -336,7 +336,9 @@ class Chatbot:
         pos_count = 0
         neg_count = 0
         in_quotes = False
+        power = 1
         neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
+        power_list = ["really", "reeally", "loved", "terrible"]
         for word in split_input:
             word = word.strip()
             word_no_comma = word.rstrip(",")
@@ -357,6 +359,8 @@ class Chatbot:
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
+                if self.creative and word_no_comma in power_list or word.endswith("!!!"):
+                    power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
                         pos_count += (1 * negate)
@@ -370,9 +374,11 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:
-            return 1
+            print(1 * power);
+            return 1 * power
         elif pos_count < neg_count:
-            return -1
+            print(-1 * power)
+            return -1 * power
         return 0
 
     def extract_sentiment_for_movies(self, preprocessed_input):

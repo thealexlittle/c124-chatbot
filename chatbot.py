@@ -349,7 +349,7 @@ class Chatbot:
                 in_quotes = True
             if word.endswith("\"") or "\"" in word:
                 in_quotes = False
-                if word.endswith("!"):
+                if self.creative and word.endswith("!"):
                     power = 2
                 continue
             if in_quotes:

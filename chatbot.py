@@ -439,15 +439,18 @@ class Chatbot:
 
         
         #get titles from self.titles
-        titles = ["asdfgh", "light", "drk"]
+        #titles = ["asdfgh", "light", "drk"]
+        titles = self.titles
 
         length_first = len(title)
         title_rev =  title[::-1]
         distances = []
      
-        for other_title in titles:
-          #access index 0 of the other_title field to get the name
-            length_second = len(other_title)
+        for i in range(len(titles)):
+          #access index 1 of the other_title field to get the name
+            other_title = titles[i]
+            length_second = len(other_title[1])
+            index = i
           #get index of movie
 
             arr= np.zeros((length_first+1, length_second+1))
@@ -472,18 +475,19 @@ class Chatbot:
 
             distance = arr[0][length_second]
             #add to the tuple the index of the movie
-            distance_betweeen = (distance, other_title)
-            distances.append(distance_betweeen)
+            if(distance <= max_distance):
+                distance_betweeen = (distance, other_title,index)
+                distances.append(distance_betweeen)
 
-        distances = sorted(distances, key = lambda x: x[0])     
-        print(distances)
-            
-            
+        distances = sorted(distances, key = lambda x: x[0])
 
+        if (len(distances) != 0 ):
+            minimum = distances[0][2]
+            final_list = [x[2] for x in distances if x[0] == minimum]
+            return final_list
 
-
-
-        pass
+        else: 
+            return []
 
 
 

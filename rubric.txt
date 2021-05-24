@@ -29,7 +29,7 @@ Did not implement any of the above features: NO
 #########################################################################################
 # Team Contributions                                                                    #
 #########################################################################################
-TODO: Please write a short description of what each team member contributed!
+Alonzo - Sentiment extraction for both standard and creative modes.
 
 
 #########################################################################################

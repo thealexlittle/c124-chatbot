@@ -78,7 +78,7 @@ class Chatbot:
 
     def echo_sentiment(self, sentiment, title):
         phrase = ''
-        if sentiment == 1:
+        if sentiment > 0:
             phrase = 'You liked'
         else:
             phrase = 'You did not like'
@@ -338,7 +338,7 @@ class Chatbot:
         in_quotes = False
         power = 1
         neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
-        power_list = ["really", "reeally", "loved", "terrible"]
+        power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
             word_no_comma = word.rstrip(",")
@@ -347,8 +347,10 @@ class Chatbot:
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
-            if word.endswith("\""):
+            if word.endswith("\"") or "\"" in word:
                 in_quotes = False
+                if word.endswith("!"):
+                    power = 2
                 continue
             if in_quotes:
                 continue
@@ -359,7 +361,7 @@ class Chatbot:
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
-                if self.creative and word_no_comma in power_list or word.endswith("!!!"):
+                if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
                     power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
@@ -374,10 +376,8 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:
-            print(1 * power);
             return 1 * power
         elif pos_count < neg_count:
-            print(-1 * power)
             return -1 * power
         return 0
 

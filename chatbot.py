@@ -447,20 +447,44 @@ class Chatbot:
         
         #get titles from self.titles
         #titles = ["asdfgh", "light", "drk"]
-        titles = self.titles
 
+        # Rearrange input title to match database entries
+        # Changes the input title to resemble the database entry: <Title>, *An or The* (Year)
+        # ex. The Notebook (2004) -> Notebook, The (2004) 
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return (title.split(w, 1)[1] + ", " + w).strip()
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+        
+        # Handle the case that an input title begins with "An" or "The" 
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ']:
+            if title.find(w) == 0:
+                title = rearrange(w, title)
+
+        titles = self.titles
+        title = title.strip().lower()
         length_first = len(title)
         title_rev =  title[::-1]
         distances = []
+        #print(title)
      
         for i in range(len(titles)):
           #access index 1 of the other_title field to get the name
-            other_title = titles[i]
-            length_second = len(other_title[1])
+            other_title = titles[i][0]
+            length_orig = len(other_title)
+            other_title = other_title[0:length_orig-7].strip().lower()
+            length_second = len(other_title)
+            
+          #  print(other_title)
+
             index = i
-          #get index of movie
+          # get index of movie
 
             arr= np.zeros((length_first+1, length_second+1))
+           # if(i == 0):
+               # print(arr.shape)
             
             for i in range(length_first+1):
                 arr[i][0]= length_first - i 
@@ -468,28 +492,45 @@ class Chatbot:
             for i in range(length_second+1):
                 arr[length_first][i]= i 
 
-            
+            #print(len(title))
+            #print(len(other_title))
+
             for i in range(length_first-1, -1, -1): 
                 for j in range(1,length_second+1):
                     left = arr[i][j-1] + 1
                     bottom = arr[i+1][j] + 1
                     diagonal = arr[i+1][j-1]
 
+                   # print(title_rev)
+                   # print(other_title)
+
                     if title_rev[i] != other_title[j-1]:
+                      #  print(i)
+                      #  print(j)
                         diagonal += 2
 
                     arr[i][j] = min(left, bottom, diagonal)
+            
+            #if (index == 0): 
+               # print(other_title)
+               # print(arr)
 
+            
             distance = arr[0][length_second]
+            #print(distance)
+            #print(max_distance)
             #add to the tuple the index of the movie
             if(distance <= max_distance):
                 distance_betweeen = (distance, other_title,index)
                 distances.append(distance_betweeen)
 
         distances = sorted(distances, key = lambda x: x[0])
+        #print(distances)
 
-        if (len(distances) != 0 ):
-            minimum = distances[0][2]
+        if (len(distances) != 0):
+            #print("hello")
+            #print(len(distances))
+            minimum = distances[0][0]
             final_list = [x[2] for x in distances if x[0] == minimum]
             return final_list
 

@@ -234,6 +234,11 @@ def test_find_movies_closest_to_title():
         ('Te', [8082, 4511, 1664]),
         ('BAT-MAAAN', [524, 5743]),
         ('Blargdeblargh', []),
+        ('The Notebok', [5448]),
+        ('An Awfully Big Advventuree', [127]),
+        ('An Amrican in Paris', [721]),
+        ('The Cellloid Closet', [516]),
+        ('Titanc', [2716, 1359])
     ]
 
     tests_passed = True

@@ -83,6 +83,9 @@ class Chatbot:
         else:
             phrase = 'You did not like'
         return phrase + ' "' + title + '". Thank you!\n'
+    
+    def other_response(self, line):
+        return "Hm, I'm not quite sure what you mean. Why don't you tell me about another movie?"
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -571,9 +574,9 @@ class Chatbot:
             if user_ratings[i] == 0:
                 continue
             for j in range(len(ratings_matrix)):
-                if i != j:
-                    cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
-                    similarities[i][j] = cos_sim
+                #if i != j:
+                cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
+                similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
         print('FINDING RATINGS!')
@@ -583,8 +586,8 @@ class Chatbot:
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
-                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
-                    continue        
+                #if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
+                    #continue      
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))
             # need to also keep track of the indices of the movies

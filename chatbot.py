@@ -19,6 +19,7 @@ class Chatbot:
         self.name = 'moviebot'
 
         self.creative = creative
+        self.clarifying = False
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -86,6 +87,14 @@ class Chatbot:
     
     def other_response(self, line):
         return "Hm, I'm not quite sure what you mean. Why don't you tell me about another movie?"
+    
+    def prompt_for_clarification(self, title_ids):
+        movies = []
+        for id in title_ids:
+            movies.append(self.titles[id][0])
+        return 'I found multiple results for your input. Which movie did you mean?' + movies
+        
+
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -123,6 +132,9 @@ class Chatbot:
             response = "I processed {} in starter mode!!".format(line)
         # if the user says yes and dict is large enough, supply a recommendation
         # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+        if self.clarifying:
+            self.clarifying = False 
+            title_id = disambiguate(line, title_ids)
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
@@ -136,9 +148,13 @@ class Chatbot:
             return "I'm sorry, I'm not quite sure if you liked \"" + input_titles[0] + "\". \n Tell me more about \"" + input_titles[0] + '".'
         # need to change to work for all lower
         title_ids = self.find_movies_by_title(input_titles[0])
-        print(title_ids)
+        '''
         for i in range(len(title_ids)):
             self.user_ratings[title_ids[i]] = input_sentiment
+        '''
+        if self.creative and len(title_ids) > 1:
+            self.clarifying = True
+            return prompt_for_clarification(title_ids)
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info

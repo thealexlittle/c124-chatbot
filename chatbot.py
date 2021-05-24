@@ -361,8 +361,9 @@ class Chatbot:
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
-                if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
-                    power = 2
+                if self.creative:
+                    if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
+                        power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
                         pos_count += (1 * negate)

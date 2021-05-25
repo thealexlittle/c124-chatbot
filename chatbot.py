@@ -140,7 +140,7 @@ class Chatbot:
         input_titles = self.extract_titles(line)
         if len(input_titles) == 0:
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
-        if len(input_titles) > 1:
+        if len(input_titles) > 1 and not self.creative:
             return "Please tell me about one movie at a time. Go ahead."
         # handle case of when they are updating their rating (want to do -=1 for counter)
         input_sentiment = self.extract_sentiment(line)
@@ -393,6 +393,9 @@ class Chatbot:
                         count += -1 * negate  
                 if has_comma:
                     negate = 1
+        print(count)
+        print(power)
+        print(negate)
         if count > 0:
             return 1 * power
         elif count < 0:
@@ -581,10 +584,9 @@ class Chatbot:
         """
         ids = []
         for candidate in candidates:
-            # Check without year if year not given 
-            # Check with year if year is given
-            if clarification in self.titles[candidate][0]:
-                ids.append(candidate)
+            if clarification == self.titles[candidate][0]:
+                #ids.append(candidate)
+                return candidate
         return ids
 
     ############################################################################

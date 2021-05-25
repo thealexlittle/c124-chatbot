@@ -585,17 +585,29 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
+        clarification = clarification.lower()
+        years = [(re.search(r'([\d]{4})', self.titles[c][0]).group(0),c) for c in candidates]
+        if 'recent' in clarification.lower():
+            years.sort(reverse=True, key= lambda x: x[0])
+            return [years[0][1]]
+        
         ids = []
-        for candidate in candidates:
-            # Check without year if year not given 
-            # Check with year if year is given
-            title = self.titles[candidate][0]
-            year = re.search(r'([\d]{4})', title)
-            if year is not None and year.group(0) in clarification:
+        for i, candidate in enumerate(candidates):
+            title = self.titles[candidate][0].lower()
+            year = years[i][0] 
+            if year in clarification:
                 ids.append(candidate)
-                continue
-            if clarification in title.split("(")[0]:
+            elif clarification in title.split("(")[0]:
                 ids.append(candidate)
+            else:
+                sect = set(clarification.split()).intersection(title.split())
+                print(sect)
+                if sect is not None:
+                    sect = list(sect)
+                    if len(sect) == 1 and not ('the' in sect or 'one' in sect):
+                        ids.append(candidate)
+                    elif len(sect) > 2:
+                        ids.append(candidate)
         return ids
 
     ############################################################################

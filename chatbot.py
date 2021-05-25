@@ -507,9 +507,11 @@ class Chatbot:
                 if s_t1 in s_t2:
                     return s_t1.split()[0] == s_t2.split()[0]
                 else:
-                    alt_t2 = re.search(r'\(a.k.a([\w][\D][^(]+)\)',t2)
+                    alt_t2 = re.findall(r'\(([\w][\D][^(]+)\)',t2)
                     if alt_t2 is not None:
-                        return t1.lower().strip() in alt_t2.group(1).lower().strip()                    
+                        for match in alt_t2:
+                            if t1.lower().strip() in match.lower().strip():
+                                return True                    
                     return False
                     
             t2_y = re.search(r'\(([0-9]+)\)', t2)
@@ -622,9 +624,9 @@ class Chatbot:
         title, and the second is the sentiment in the text toward that movie
         """
         #don't need to consider the case where some movies are in the database while the rest are not
-        title_array = extract_titles(preprocessed_input);
+        title_array = self.extract_titles(preprocessed_input);
         if len(title_array) == 1:
-            return [(title_array[0], extract_sentiment(preprocessed_input))]
+            return [(title_array[0], self.extract_sentiment(preprocessed_input))]
 
         stemmer = PorterStemmer()
         split_input = preprocessed_input.lower().split()
@@ -884,7 +886,7 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
-        clarification = clarification.lower()
+        clarification = clarification.strip().lower()
         years = [(re.search(r'([\d]{4})', self.titles[c][0]).group(0),c) for c in candidates]
         if 'recent' in clarification.lower():
             years.sort(reverse=True, key= lambda x: x[0])
@@ -902,7 +904,8 @@ class Chatbot:
                 sect = set(clarification.split()).intersection(title.split())
                 if sect is not None:
                     sect = list(sect)
-                    if len(sect) == 1 and not ('the' in sect or 'one' in sect):
+                    print(sect)
+                    if len(sect) == 1 and not ('the' in sect or 'one' in sect or 'of'):
                         ids.append(candidate)
                     elif len(sect) > 2:
                         ids.append(candidate)

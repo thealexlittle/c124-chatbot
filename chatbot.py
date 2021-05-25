@@ -68,7 +68,7 @@ class Chatbot:
         # TODO: Write a short farewell message                                 #
         ########################################################################
 
-        goodbye_message = "Happy movie watching! \n Come back soon and tell me all about what you watched!"
+        goodbye_message = "Happy movie watching! \n Come back soon and tell me all about what you've watched!"
 
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -85,6 +85,27 @@ class Chatbot:
         else:
             phrase = 'You did not like'
         return phrase + ' "' + title + '". Thank you!\n'
+    
+    def echo_sentiments(self, sentiments):
+        pos = [x for x in sentiments if x[1] > 0]
+        neg = [x for x in sentiments if x[1] < 0]
+
+        pos_str = 'You liked '
+        for i in range(len(pos)):
+            pos_str += ' ' + pos[i][0]
+            if i != len(pos) - 1:
+                pos_str += ','
+        pos_str += '.'
+
+        neg_str = 'You did not like '
+        for i in range(len(neg)):
+            neg_str += ' ' + neg[i][0]
+            if i != len(neg) - 1:
+                neg_str += ','
+        neg_str += '.'
+
+        return 'Okay! ' + pos_str + ' ' + neg_str + ' Thank you!\n'
+        
     
     def other_response(self, line):
         return "Hm, I'm not quite sure what you mean. Why don't you tell me about another movie?"
@@ -148,12 +169,8 @@ class Chatbot:
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
-<<<<<<< HEAD
             title_ids = disambiguate(line, title_ids)
             user_ratings[title_ids[0]] = sentiment
-=======
-            title_ids = self.disambiguate(line, title_ids)
->>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
             
         input_titles = self.extract_titles(line)
         sentiments = []
@@ -188,15 +205,15 @@ class Chatbot:
             title_ids = self.find_movies_by_title(input_titles[0])
         # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
         else:
-            # Should this be a loop?
-             title_ids = self.find_movies_by_title(input_titles)
+            for title in input_titles:
+                title_ids.extend(self.find_movies_by_title(title))
 
         # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
         if len(title_ids) > 1 and not self.creative:
             return 'Sorry, I cannot find the requested movie. Can you be more specific?'
 
-        # MULTIPLE TITLE-IDS FOUND IN CREATIVE MODE
-        if len(title_ids) > 1 and self.creative:
+        # MORE TITLE IDS FOUND THAN TITLES INPUTTED IN CREATIVE MODE
+        if len(title_ids) != len(input_titles) and self.creative:
             self.clarifying = True
             return self.prompt_for_clarification(title_ids)
         
@@ -213,8 +230,8 @@ class Chatbot:
         if self.input_counter < 5:
             if not self.creative or len(title_ids) == 1:
                 return self.echo_sentiment(sentiment, input_titles[0]) + self.prompt_for_info()
-            #else:
-                # RESPONSE FOR ACKNOWLEDGING MULTIPLE MOVIES AND HOW THE USER RATED THEM
+            else:
+                return self.echo_sentiments(sentiments) + self.prompt_for_info
         else:
             self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
             return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
@@ -680,24 +697,13 @@ class Chatbot:
             return [years[0][1]]
         
         ids = []
-<<<<<<< HEAD
-        for candidate in candidates:
-            # Check without year if year not given 
-            # Check with year if year is given
-            title = self.titles[candidate][0]
-            year = re.search(r'([\d]{4})', title)
-            if year is not None and year.group(0) in clarification:
-=======
         for i, candidate in enumerate(candidates):
             title = self.titles[candidate][0].lower()
             year = years[i][0] 
             if year in clarification:
->>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
                 ids.append(candidate)
             elif clarification in title.split("(")[0]:
                 ids.append(candidate)
-<<<<<<< HEAD
-=======
             else:
                 sect = set(clarification.split()).intersection(title.split())
                 print(sect)
@@ -708,7 +714,6 @@ class Chatbot:
                     elif len(sect) > 2:
                         ids.append(candidate)
 
->>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
         return ids
 
     ############################################################################

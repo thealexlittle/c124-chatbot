@@ -19,7 +19,7 @@ FEATURE - Disambiguation (part 2): YES
 FEATURE - Disambiguation (part 3): YES
 FEATURE - Dialogue for spell-checking: NO
 FEATURE - Dialogue for disambiguation: NO
-FEATURE - Communicating sentiments and movies extracted to the user given multiple-movie input: NO
+FEATURE - Communicating sentiments and movies extracted to the user given multiple-movie input: YES
 FEATURE - Understanding references to things said previously: YES
 FEATURE - Responding to arbitrary input: NO
 FEATURE - Speaking very fluently: YES

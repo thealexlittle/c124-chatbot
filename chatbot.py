@@ -79,7 +79,7 @@ class Chatbot:
 
     def echo_sentiment(self, sentiment, title):
         phrase = ''
-        if sentiment == 1:
+        if sentiment > 0:
             phrase = 'You liked'
         else:
             phrase = 'You did not like'
@@ -395,9 +395,9 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:
-            return 1 #* power
+            return 1 * power
         elif pos_count < neg_count:
-            return -1 #* power
+            return -1 * power
         return 0
 
     def extract_sentiment_for_movies(self, preprocessed_input):

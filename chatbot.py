@@ -78,7 +78,7 @@ class Chatbot:
 
     def echo_sentiment(self, sentiment, title):
         phrase = ''
-        if sentiment > 0:
+        if sentiment == 1:
             phrase = 'You liked'
         else:
             phrase = 'You did not like'
@@ -347,10 +347,9 @@ class Chatbot:
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
-            if word.endswith("\"") or "\"" in word:
+            #if word.endswith("\"") or "\"" in word:
+            if word.endswith("\""):
                 in_quotes = False
-                if self.creative and word.endswith("!"):
-                    power = 2
                 continue
             if in_quotes:
                 continue
@@ -362,7 +361,7 @@ class Chatbot:
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
+                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
                         power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
@@ -377,9 +376,9 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if pos_count > neg_count:
-            return 1 * power
+            return 1 #* power
         elif pos_count < neg_count:
-            return -1 * power
+            return -1 #* power
         return 0
 
     def extract_sentiment_for_movies(self, preprocessed_input):

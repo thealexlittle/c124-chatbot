@@ -124,7 +124,8 @@ class Chatbot:
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
     
-    def spellcheck_response(input_titles)
+    def spellcheck_response(input_titles):
+        pass
         
 
 
@@ -179,7 +180,7 @@ class Chatbot:
         if self.clarifying:
             self.clarifying = False 
             title_ids = disambiguate(line, title_ids)
-            user_ratings[title_ids[0]] = sentiment
+            self.user_ratings[title_ids[0]] = sentiment
             
         input_titles = self.extract_titles(line)
         sentiments = []
@@ -189,7 +190,7 @@ class Chatbot:
         if len(input_titles) == 0 and not self.creative:
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
         if len(input_titles) == 0 and self.creative:
-            return spellcheck_response(input_titles)
+            return self.spellcheck_response(input_titles)
 
         # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
         if self.creative and len(input_titles) > 1:
@@ -206,9 +207,10 @@ class Chatbot:
                 return self.unclear_sentiment_response(input_titles[0])
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
-        for i in range(len(sentiments)):
-            if sentiments[i] == 0:
-                return self.unclear_sentiment_response(sentiments[i][0])
+        if len(sentiments) != 0:
+            for i in range(len(sentiments)):
+                if sentiments[i] == 0:
+                    return self.unclear_sentiment_response(sentiments[i][0])
 
         title_ids = []
         # GRAB TITLE IDS FOR A SINGLE MOVIE
@@ -229,7 +231,7 @@ class Chatbot:
             return self.prompt_for_clarification(title_ids)
         
         # UPDATE USER RATINGS IN NON-CREATIVE MODE
-        if not self.creative:
+        if not self.creative or len(input_titles) == 1:
             self.user_ratings[title_ids[0]] = sentiment
             self.input_counter += 1
         # UPDATE USER RATINGS IN CREATIVE MODE

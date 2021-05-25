@@ -27,7 +27,12 @@ class Chatbot:
         self.line = ""
         self.recommendation_made = False
         self.spellchecked = False
+        #self.clarified = True
         self.clarified = False
+
+        self.title_ids = []
+        self.user_sentiment = 0
+        self.sentiments = []
 
         self.affirmations = ['yes', 'yess', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely', 'i guess']
         self.refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay', 'n', 'noo']
@@ -88,7 +93,8 @@ class Chatbot:
     def prompt_for_info(self):
         return 'Tell me about another movie you have seen.'
 
-    def echo_sentiment(self, sentiment, title):
+    def echo_sentiment(self, sentiment, title_id):
+        title = self.titles[title_id][0]
         phrase = ''
         if sentiment > 0:
             phrase = 'You liked'
@@ -124,7 +130,7 @@ class Chatbot:
         movies = []
         for id in title_ids:
             movies.append(self.titles[id][0])
-        return 'I found multiple results for your input. Which movie did you mean?' + movies
+        return 'I found multiple results for your input. Which movie did you mean? ' + " ,".join(movies)
 
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
@@ -205,6 +211,7 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         
+        input_titles = []
 
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
@@ -230,80 +237,88 @@ class Chatbot:
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
-            title_ids = disambiguate(line, title_ids)
-            self.user_ratings[title_ids[0]] = sentiment
+            self.title_ids = self.disambiguate(line, self.title_ids)
+            #self.user_ratings[self.title_ids[0]] = self.user_sentiment
             self.clarified = True
+            line = self.line
 
         if not self.spellchecked and not self.clarified:    
             input_titles = self.extract_titles(line)
         sentiments = []
         sentiment = 0
-
         print(input_titles)
+        #input_titles = self.extract_titles(line)
+
         # NO TITLES FOUND
-        if len(input_titles) == 0 and not self.creative:
+        if len(input_titles) == 0 and not self.creative and not self.clarified: 
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
 
-        # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
-        if self.creative and len(input_titles) > 1:
-            sentiments = self.extract_sentiment_for_movies(line)
-        
         # MORE THAN ONE TITLE FOUND IN NON-CREATIVE MODE
         if not self.creative and len(input_titles) > 1:
             return "Please tell me about one movie at a time. Go ahead."
         
-        title_ids = []
         # GRAB TITLE IDS FOR A SINGLE MOVIE
         if not self.clarified and (not self.creative or len(input_titles) == 1):
-            title_ids = self.find_movies_by_title(input_titles[0])
+            self.title_ids = self.find_movies_by_title(input_titles[0])
         # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
         elif not self.clarified:
             for title in input_titles:
-                title_ids.extend(self.find_movies_by_title(title))
-
-        self.clarified = False 
+                self.title_ids.extend(self.find_movies_by_title(title))
+        
         # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
-        if len(title_ids) > 1 and not self.creative:
+        if len(self.title_ids) > 1 and not self.creative:
             return 'Sorry, I cannot find the requested movie. Can you be more specific?'
         
-        if len(title_ids) == 0 and self.creative:
+        #if len(self.title_ids) == 0 and self.creative:
+        if len(self.title_ids) == 0 and self.creative and not self.clarified:
             return self.spellcheck_response(input_titles, line)
 
         # MORE TITLE IDS FOUND THAN TITLES INPUTTED IN CREATIVE MODE
-        if len(title_ids) != len(input_titles) and self.creative:
-            self.clarifying = True
-            return self.prompt_for_clarification(title_ids)
-        
+        if len(self.title_ids) > len(input_titles) and self.creative:
+            if not self.clarified:
+                self.clarifying = True
+                #self.clarified = False
+                self.line = line
+                return self.prompt_for_clarification(self.title_ids)
         
         # FIND SENTIMENT OF SINGLE MOVIE IN NON-CREATIVE MODE
-        if not self.creative or len(input_titles) == 1:
+        #if not self.creative or len(input_titles) == 1:
+        if not self.creative or len(self.title_ids) == 1:
             if self.spellchecked:
                 line = self.line
-            sentiment = self.extract_sentiment(line)
-            if sentiment == 0:
+            self.user_sentiment = self.extract_sentiment(line)
+            if self.user_sentiment == 0:
                 return self.unclear_sentiment_response(input_titles[0])
+
+        # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
+        #if self.creative and len(input_titles) > 1:
+        if self.creative and len(self.title_ids) > 1:
+            self.sentiments = self.extract_sentiment_for_movies(line)
+        
+        self.clarified = False 
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
-        if len(sentiments) != 0:
-            for i in range(len(sentiments)):
-                if sentiments[i] == 0:
-                    return self.unclear_sentiment_response(sentiments[i][0])
+        if len(self.sentiments) != 0:
+            for i in range(len(self.sentiments)):
+                if self.sentiments[i] == 0:
+                    return self.unclear_sentiment_response(self.sentiments[i][0])
 
         # UPDATE USER RATINGS IN NON-CREATIVE MODE
-        if not self.creative or len(input_titles) == 1:
-            self.user_ratings[title_ids[0]] = sentiment
+        if not self.creative or len(self.title_ids) == 1:
+            self.user_ratings[self.title_ids[0]] = self.user_sentiment
             self.input_counter += 1
         # UPDATE USER RATINGS IN CREATIVE MODE
         else:
-            for i in range(len(title_ids)):
-                self.user_ratings[title_ids[i]] = sentiments[i][1]
+            for i in range(len(self.title_ids)):
+                self.user_ratings[self.title_ids[i]] = self.sentiments[i][1]
                 self.input_counter += 1
         
         if self.input_counter < 5:
-            if not self.creative or len(title_ids) == 1:
-                return self.echo_sentiment(sentiment, input_titles[0]) + self.prompt_for_info()
+            if not self.creative or len(self.title_ids) == 1:
+                #return self.echo_sentiment(self.sentiment, input_titles[0]) + self.prompt_for_info()
+                return self.echo_sentiment(self.user_sentiment, self.title_ids[0]) + self.prompt_for_info()
             else:
-                return self.echo_sentiments(sentiments) + self.prompt_for_info
+                return self.echo_sentiments(self.sentiments) + self.prompt_for_info()
         else:
             self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
             return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
@@ -452,7 +467,7 @@ class Chatbot:
                         res.append(substr)
             size += 1
         
-
+        if res == []: return res
         return [max(res)]
 
     def find_movies_by_title(self, title):
@@ -492,7 +507,7 @@ class Chatbot:
                 if s_t1 in s_t2:
                     return s_t1.split()[0] == s_t2.split()[0]
                 else:
-                    alt_t2 = re.search(r'\(([\w][\D][^(]+)\)',t2)
+                    alt_t2 = re.search(r'\(a.k.a([\w][\D][^(]+)\)',t2)
                     if alt_t2 is not None:
                         return t1.lower().strip() in alt_t2.group(1).lower().strip()                    
                     return False
@@ -509,10 +524,8 @@ class Chatbot:
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
             if title.lower() in self.titles[id][0].lower():
-                #print(self.titles[id][0])
                 if compare_years(title, self.titles[id][0]): 
                     ids.append(id)
-        
         return ids
 
     def extract_sentiment(self, preprocessed_input):
@@ -809,14 +822,12 @@ class Chatbot:
                 ids.append(candidate)
             else:
                 sect = set(clarification.split()).intersection(title.split())
-                print(sect)
                 if sect is not None:
                     sect = list(sect)
                     if len(sect) == 1 and not ('the' in sect or 'one' in sect):
                         ids.append(candidate)
                     elif len(sect) > 2:
                         ids.append(candidate)
-
         return ids
 
     ############################################################################

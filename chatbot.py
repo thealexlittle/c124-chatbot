@@ -19,6 +19,7 @@ class Chatbot:
         self.name = 'moviebot'
 
         self.creative = creative
+        self.clarifying = False
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -83,6 +84,17 @@ class Chatbot:
         else:
             phrase = 'You did not like'
         return phrase + ' "' + title + '". Thank you!\n'
+    
+    def other_response(self, line):
+        return "Hm, I'm not quite sure what you mean. Why don't you tell me about another movie?"
+    
+    def prompt_for_clarification(self, title_ids):
+        movies = []
+        for id in title_ids:
+            movies.append(self.titles[id][0])
+        return 'I found multiple results for your input. Which movie did you mean?' + movies
+        
+
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -120,6 +132,9 @@ class Chatbot:
             response = "I processed {} in starter mode!!".format(line)
         # if the user says yes and dict is large enough, supply a recommendation
         # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+        if self.clarifying:
+            self.clarifying = False 
+            title_id = disambiguate(line, title_ids)
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
@@ -133,9 +148,13 @@ class Chatbot:
             return "I'm sorry, I'm not quite sure if you liked \"" + input_titles[0] + "\". \n Tell me more about \"" + input_titles[0] + '".'
         # need to change to work for all lower
         title_ids = self.find_movies_by_title(input_titles[0])
-        print(title_ids)
+        '''
         for i in range(len(title_ids)):
             self.user_ratings[title_ids[i]] = input_sentiment
+        '''
+        if self.creative and len(title_ids) > 1:
+            self.clarifying = True
+            return prompt_for_clarification(title_ids)
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info
@@ -446,20 +465,44 @@ class Chatbot:
         
         #get titles from self.titles
         #titles = ["asdfgh", "light", "drk"]
-        titles = self.titles
 
+        # Rearrange input title to match database entries
+        # Changes the input title to resemble the database entry: <Title>, *An or The* (Year)
+        # ex. The Notebook (2004) -> Notebook, The (2004) 
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return (title.split(w, 1)[1] + ", " + w).strip()
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+        
+        # Handle the case that an input title begins with "An" or "The" 
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ']:
+            if title.find(w) == 0:
+                title = rearrange(w, title)
+
+        titles = self.titles
+        title = title.strip().lower()
         length_first = len(title)
         title_rev =  title[::-1]
         distances = []
+        #print(title)
      
         for i in range(len(titles)):
           #access index 1 of the other_title field to get the name
-            other_title = titles[i]
-            length_second = len(other_title[1])
+            other_title = titles[i][0]
+            length_orig = len(other_title)
+            other_title = other_title[0:length_orig-7].strip().lower()
+            length_second = len(other_title)
+            
+          #  print(other_title)
+
             index = i
-          #get index of movie
+          # get index of movie
 
             arr= np.zeros((length_first+1, length_second+1))
+           # if(i == 0):
+               # print(arr.shape)
             
             for i in range(length_first+1):
                 arr[i][0]= length_first - i 
@@ -467,28 +510,45 @@ class Chatbot:
             for i in range(length_second+1):
                 arr[length_first][i]= i 
 
-            
+            #print(len(title))
+            #print(len(other_title))
+
             for i in range(length_first-1, -1, -1): 
                 for j in range(1,length_second+1):
                     left = arr[i][j-1] + 1
                     bottom = arr[i+1][j] + 1
                     diagonal = arr[i+1][j-1]
 
+                   # print(title_rev)
+                   # print(other_title)
+
                     if title_rev[i] != other_title[j-1]:
+                      #  print(i)
+                      #  print(j)
                         diagonal += 2
 
                     arr[i][j] = min(left, bottom, diagonal)
+            
+            #if (index == 0): 
+               # print(other_title)
+               # print(arr)
 
+            
             distance = arr[0][length_second]
+            #print(distance)
+            #print(max_distance)
             #add to the tuple the index of the movie
             if(distance <= max_distance):
                 distance_betweeen = (distance, other_title,index)
                 distances.append(distance_betweeen)
 
         distances = sorted(distances, key = lambda x: x[0])
+        #print(distances)
 
-        if (len(distances) != 0 ):
-            minimum = distances[0][2]
+        if (len(distances) != 0):
+            #print("hello")
+            #print(len(distances))
+            minimum = distances[0][0]
             final_list = [x[2] for x in distances if x[0] == minimum]
             return final_list
 
@@ -644,9 +704,9 @@ class Chatbot:
             if user_ratings[i] == 0:
                 continue
             for j in range(len(ratings_matrix)):
-                if i != j:
-                    cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
-                    similarities[i][j] = cos_sim
+                #if i != j:
+                cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
+                similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
         print('FINDING RATINGS!')
@@ -656,8 +716,8 @@ class Chatbot:
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
-                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
-                    continue        
+                #if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
+                    #continue      
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))
             # need to also keep track of the indices of the movies

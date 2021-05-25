@@ -19,6 +19,7 @@ class Chatbot:
         self.name = 'moviebot'
 
         self.creative = creative
+        self.clarifying = False
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -78,11 +79,22 @@ class Chatbot:
 
     def echo_sentiment(self, sentiment, title):
         phrase = ''
-        if sentiment == 1:
+        if sentiment > 0:
             phrase = 'You liked'
         else:
             phrase = 'You did not like'
         return phrase + ' "' + title + '". Thank you!\n'
+    
+    def other_response(self, line):
+        return "Hm, I'm not quite sure what you mean. Why don't you tell me about another movie?"
+    
+    def prompt_for_clarification(self, title_ids):
+        movies = []
+        for id in title_ids:
+            movies.append(self.titles[id][0])
+        return 'I found multiple results for your input. Which movie did you mean?' + movies
+        
+
 
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
@@ -120,6 +132,9 @@ class Chatbot:
             response = "I processed {} in starter mode!!".format(line)
         # if the user says yes and dict is large enough, supply a recommendation
         # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+        if self.clarifying:
+            self.clarifying = False 
+            title_id = disambiguate(line, title_ids)
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
@@ -133,9 +148,13 @@ class Chatbot:
             return "I'm sorry, I'm not quite sure if you liked \"" + input_titles[0] + "\". \n Tell me more about \"" + input_titles[0] + '".'
         # need to change to work for all lower
         title_ids = self.find_movies_by_title(input_titles[0])
-        print(title_ids)
+        '''
         for i in range(len(title_ids)):
             self.user_ratings[title_ids[i]] = input_sentiment
+        '''
+        if self.creative and len(title_ids) > 1:
+            self.clarifying = True
+            return prompt_for_clarification(title_ids)
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info
@@ -333,10 +352,11 @@ class Chatbot:
         stemmer = PorterStemmer()
         split_input = preprocessed_input.lower().split()
         negate = 1
-        pos_count = 0
-        neg_count = 0
+        count = 0
         in_quotes = False
+        power = 1
         neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
+        power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
             word_no_comma = word.rstrip(",")
@@ -345,6 +365,7 @@ class Chatbot:
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
+            #if word.endswith("\"") or "\"" in word:
             if word.endswith("\""):
                 in_quotes = False
                 continue
@@ -357,22 +378,25 @@ class Chatbot:
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
+                if self.creative:
+                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
+                        power = 2
                 if word_no_comma in self.sentiment:
                     if self.sentiment[word_no_comma] == "pos":
-                        pos_count += (1 * negate)
+                        count += 1 * negate
                     else:
-                        neg_count += (1 * negate)
+                        count += -1 * negate
                 elif stem in self.sentiment:
                     if self.sentiment[stem] == "pos":
-                        pos_count += (1 * negate)
+                        count += 1 * negate
                     else:
-                        neg_count += (1 * negate)   
+                        count += -1 * negate  
                 if has_comma:
                     negate = 1
-        if pos_count > neg_count:
-            return 1
-        elif pos_count < neg_count:
-            return -1
+        if count > 0:
+            return 1 * power
+        elif count < 0:
+            return -1 * power
         return 0
 
     def extract_sentiment_for_movies(self, preprocessed_input):
@@ -422,7 +446,115 @@ class Chatbot:
         and within edit distance max_distance
         """
 
-        pass
+        # get length of title N
+        # for every other title 
+            # get length of title M
+
+            #create an empty numpy array of shape NM 
+            #array[i][0] = i 
+            #array[0][j] = j 
+
+                # for i ... n 
+                    #for j ... m 
+                        #array[i][j] = min 
+                        #min of array[i-1][j] + 1
+                        #or array[i][j-1] + 1
+                        #or array[i-1][j-1] + 2 if title[i] \neq other_title[j] but 0 otherwise 
+
+        
+        #get titles from self.titles
+        #titles = ["asdfgh", "light", "drk"]
+
+        # Rearrange input title to match database entries
+        # Changes the input title to resemble the database entry: <Title>, *An or The* (Year)
+        # ex. The Notebook (2004) -> Notebook, The (2004) 
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return (title.split(w, 1)[1] + ", " + w).strip()
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+        
+        # Handle the case that an input title begins with "An" or "The" 
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ']:
+            if title.find(w) == 0:
+                title = rearrange(w, title)
+
+        titles = self.titles
+        title = title.strip().lower()
+        length_first = len(title)
+        title_rev =  title[::-1]
+        distances = []
+        #print(title)
+     
+        for i in range(len(titles)):
+          #access index 1 of the other_title field to get the name
+            other_title = titles[i][0]
+            length_orig = len(other_title)
+            other_title = other_title[0:length_orig-7].strip().lower()
+            length_second = len(other_title)
+            
+          #  print(other_title)
+
+            index = i
+          # get index of movie
+
+            arr= np.zeros((length_first+1, length_second+1))
+           # if(i == 0):
+               # print(arr.shape)
+            
+            for i in range(length_first+1):
+                arr[i][0]= length_first - i 
+
+            for i in range(length_second+1):
+                arr[length_first][i]= i 
+
+            #print(len(title))
+            #print(len(other_title))
+
+            for i in range(length_first-1, -1, -1): 
+                for j in range(1,length_second+1):
+                    left = arr[i][j-1] + 1
+                    bottom = arr[i+1][j] + 1
+                    diagonal = arr[i+1][j-1]
+
+                   # print(title_rev)
+                   # print(other_title)
+
+                    if title_rev[i] != other_title[j-1]:
+                      #  print(i)
+                      #  print(j)
+                        diagonal += 2
+
+                    arr[i][j] = min(left, bottom, diagonal)
+            
+            #if (index == 0): 
+               # print(other_title)
+               # print(arr)
+
+            
+            distance = arr[0][length_second]
+            #print(distance)
+            #print(max_distance)
+            #add to the tuple the index of the movie
+            if(distance <= max_distance):
+                distance_betweeen = (distance, other_title,index)
+                distances.append(distance_betweeen)
+
+        distances = sorted(distances, key = lambda x: x[0])
+        #print(distances)
+
+        if (len(distances) != 0):
+            #print("hello")
+            #print(len(distances))
+            minimum = distances[0][0]
+            final_list = [x[2] for x in distances if x[0] == minimum]
+            return final_list
+
+        else: 
+            return []
+
+
 
     def disambiguate(self, clarification, candidates):
         """Creative Feature: Given a list of movies that the user could be
@@ -573,9 +705,9 @@ class Chatbot:
             if user_ratings[i] == 0:
                 continue
             for j in range(len(ratings_matrix)):
-                if i != j:
-                    cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
-                    similarities[i][j] = cos_sim
+                #if i != j:
+                cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
+                similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
         print('FINDING RATINGS!')
@@ -585,8 +717,8 @@ class Chatbot:
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie
                 # check that there is a similarity score computed + that the user has rated movie j
-                if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
-                    continue        
+                #if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
+                    #continue      
                 projected_rating += (similarities[i][j] * user_ratings[j])
             projected_ratings.append((projected_rating, i))
             # need to also keep track of the indices of the movies

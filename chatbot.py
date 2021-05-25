@@ -123,6 +123,8 @@ class Chatbot:
 
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
+    
+    def spellcheck_response(input_titles)
         
 
 
@@ -184,8 +186,10 @@ class Chatbot:
         sentiment = 0
 
         # NO TITLES FOUND
-        if len(input_titles) == 0:
+        if len(input_titles) == 0 and not self.creative:
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
+        if len(input_titles) == 0 and self.creative:
+            return spellcheck_response(input_titles)
 
         # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
         if self.creative and len(input_titles) > 1:
@@ -196,7 +200,7 @@ class Chatbot:
             return "Please tell me about one movie at a time. Go ahead."
         
         # FIND SENTIMENT OF SINGLE MOVIE IN NON-CREATIVE MODE
-        if not self.creative:
+        if not self.creative or len(input_titles) == 1:
             sentiment = self.extract_sentiment(line)
             if sentiment == 0:
                 return self.unclear_sentiment_response(input_titles[0])
@@ -868,10 +872,9 @@ class Chatbot:
         v_sum = 0
         numerator = 0
         for i in range(len(u)):
-            if u[i] != 0 and v[i] != 0:
-                u_sum += (u[i] ** 2)
-                v_sum += (v[i] ** 2)
-                numerator += (u[i] * v[i])
+            u_sum += (u[i] ** 2)
+            v_sum += (v[i] ** 2)
+            numerator += (u[i] * v[i])
         if u_sum == 0 or v_sum == 0:
             return 0
         return numerator / (math.sqrt(u_sum) * math.sqrt(v_sum))

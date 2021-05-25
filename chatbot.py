@@ -263,7 +263,6 @@ class Chatbot:
         while size < len(tokens):    
             for i in range(len(tokens)):
                 substr = " ".join(tokens[i:i+size])
-                
                 if size == 1 and tokens[i] in ['i', 'a']:
                     continue
 
@@ -356,52 +355,54 @@ class Chatbot:
         stemmer = PorterStemmer()
         split_input = preprocessed_input.lower().split()
         negate = 1
-        pos_count = 0
-        neg_count = 0
+        count = 0
         in_quotes = False
         power = 1
         neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nor", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
         power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
-            word_no_comma = word.rstrip(",")
-            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
+            word_no_punc = word.rstrip(",.")
+            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
             if stem.endswith('i'):
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
-            if word.endswith("\"") or "\"" in word:
+            #if word.endswith("\"") or "\"" in word:
+            if word.endswith("\""):
                 in_quotes = False
-                if self.creative and word.endswith("!"):
-                    power = 2
                 continue
             if in_quotes:
                 continue
             if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
                 negate = -1  # or have negate * -1
             else:
+                print(word)
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_comma in power_list or stem in power_list or word.endswith("!!!"):
+                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
+                        print("power!!")
                         power = 2
-                if word_no_comma in self.sentiment:
-                    if self.sentiment[word_no_comma] == "pos":
-                        pos_count += (1 * negate)
+                if word_no_punc in self.sentiment:
+                    if self.sentiment[word_no_punc] == "pos":
+                        count += 1 * negate
                     else:
-                        neg_count += (1 * negate)
+                        count += -1 * negate
                 elif stem in self.sentiment:
                     if self.sentiment[stem] == "pos":
-                        pos_count += (1 * negate)
+                        count += 1 * negate
                     else:
-                        neg_count += (1 * negate)   
+                        count += -1 * negate  
                 if has_comma:
                     negate = 1
-        if pos_count > neg_count:
+        if count > 0:
+            print(1 * power)
             return 1 * power
-        elif pos_count < neg_count:
+        elif count < 0:
+            print(-1 * power)
             return -1 * power
         return 0
 
@@ -583,6 +584,8 @@ class Chatbot:
         """
         ids = []
         for candidate in candidates:
+            # Check without year if year not given 
+            # Check with year if year is given
             if clarification in self.titles[candidate][0]:
                 ids.append(candidate)
         return ids

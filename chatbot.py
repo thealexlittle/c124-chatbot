@@ -27,6 +27,9 @@ class Chatbot:
         self.line = ""
         self.recommendation_made = False
 
+        self.affirmations = ['yes', 'yess', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely', 'i guess']
+        self.refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay', 'n', 'noo']
+
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
@@ -124,7 +127,56 @@ class Chatbot:
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
     
-    def spellcheck_response(input_titles)
+    def spellcheck_response(input_titles, line):
+        #When len(input_titles) is 0, it means that either there were no movies in line the user provided or that there
+        # is a mispelled movie in quotes 
+            #a second pass through the line to see if there was a movie title in it that was just mispelled
+            input_titles = re.findall(r'"([^"]*)"', line)
+
+            #in one of the two cases mentioned above the function definition. 
+            #we also keep track of if the user is currently responding to the bot (i.e the second line in the example run for
+            #this addition in creative mode)
+            if(len(input_titles) == 0 and self.user_responding == False):
+                 return  "I'm sorry, I don't think I understand that. Please tell me your thoughts about a movie you have seen."
+
+            #stores the user's input for later access to extract sentiment 
+            if(self.user_responding == False):
+                self.input_titles_cpy = input_titles.copy()
+                self.line = line 
+
+
+            if(len(input_titles) != 0):
+                #finds one movie with the minimum edit distance between the entry in the input_titles array 
+                input_titles = self.spellcheck(input_titles, 3)
+
+                if(len(input_titles) == 0):
+                    return "Sorry, I am unfamiliar with that movie. Please make sure you're spelling it correctly and try again."
+                
+                #these two checks store the current line and input into copies for later access 
+
+                elif(input_titles == self.input_titles_cpy):
+                    self.input_titles_cpy = input_titles.copy()
+                    self.line =  line 
+                    self.user_responding = True
+                    return "You mentioned " + input_titles[0] + " ,correct?"
+
+                else:
+                    self.input_titles_cpy = input_titles.copy()
+                    self.line = line
+                    self.user_responding = True
+                    return "Did you mean to say " + input_titles[0] + "?"
+            
+            elif(self.user_responding and line.lower() not in self.affirmations and line.lower() not in self.refutations):
+                return "Please answer 'yes' or 'no'. "
+            elif(line.lower() in self.refutations):
+                self.user_responding = False
+                return "Oh, you may have spelled the movie incorrectly. Please check your spelling and tell me what you thought about a movie! "
+            '''           
+            elif(self.user_responding and line[0].lower() == 'y'):
+                self.user_responding = False
+                input_titles = self.input_titles_cpy
+                line = self.line 
+            ''' 
         
 
 
@@ -168,12 +220,17 @@ class Chatbot:
         # CHECK IF THE USER WANTS TO HEAR ANOTHER RECOMMENDATION
         if self.recommendation_made:
             lower_response = line.lower()
-            affirmations = ['yes', 'yess', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely', 'i guess']
-            refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay', 'n', 'noo']
-            if lower_response in affirmations:
+            if lower_response in self.affirmations:
                 return self.recommend_movie()
-            if lower_response in refutations:
+            if lower_response in self.refutations:
                 return self.prompt_for_info()
+
+        if self.user_responding and line in affirmations:
+           self.user_responding = False
+           input_titles = self.input_titles_cpy
+        
+        if self.user_responding:
+            return spellcheck_response([], line)
 
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
@@ -203,7 +260,7 @@ class Chatbot:
         if not self.creative or len(input_titles) == 1:
             sentiment = self.extract_sentiment(line)
             if sentiment == 0:
-                return self.unclear_sentiment_response(input_titles[0])
+                return self.unclear_sentiment_response(input_titles[0], line)
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
         for i in range(len(sentiments)):
@@ -258,56 +315,7 @@ class Chatbot:
         if len(input_titles) == 0 and not self.creative:
            return "Sorry, I don't understand. Tell me about a movie that you have seen."
         
-                                         ##### dialogue for spell checking in creative mode #####
-        #When len(input_titles) is 0, it means that either there were no movies in line the user provided or that there
-        # is a mispelled movie in quotes 
-        if len(input_titles) == 0 and self.creative:
-
-            #a second pass through the line to see if there was a movie title in it that was just mispelled
-            input_titles = re.findall(r'"([^"]*)"', line)
-
-            #in one of the two cases mentioned above the function definition. 
-            #we also keep track of if the user is currently responding to the bot (i.e the second line in the example run for
-            #this addition in creative mode)
-            if(len(input_titles) == 0 and self.user_responding == False):
-                 return  "I'm sorry, I don't think I understand that. Please tell me your thoughts about a movie you have seen."
-
-            #stores the user's input for later access to extract sentiment 
-            if(self.user_responding == False):
-                self.input_titles_cpy = input_titles.copy()
-                self.line = line 
-
-
-            if(len(input_titles) != 0):
-                #finds one movie with the minimum edit distance between the entry in the input_titles array 
-                input_titles = self.spellcheck(input_titles, 3)
-
-                if(len(input_titles) == 0):
-                    return "Sorry, I am unfamiliar with that movie. Please make sure you're spelling it correctly and try again."
-                
-                #these two checks store the current line and input into copies for later access 
-
-                elif(input_titles == self.input_titles_cpy):
-                    self.input_titles_cpy = input_titles.copy()
-                    self.line =  line 
-                    self.user_responding = True
-                    return "You mentioned " + input_titles[0] + " ,correct?"
-
-                else:
-                    self.input_titles_cpy = input_titles.copy()
-                    self.line = line
-                    self.user_responding = True
-                    return "Did you mean to say " + input_titles[0] + "?"
-            
-            elif(self.user_responding and line[0].lower() != 'y' and line[0].lower() != 'n'):
-                return "Please answer 'yes' or 'no'. "
-            elif(line[0].lower() == 'n'):
-                self.user_responding = False
-                return "Oh, you may have spelled the movie incorrectly. Please check your spelling and tell me what you thought about a movie! "
-            elif(self.user_responding and line[0].lower() == 'y'):
-                self.user_responding = False
-                input_titles = self.input_titles_cpy
-                line = self.line 
+    
                
 
         if len(input_titles) > 1:

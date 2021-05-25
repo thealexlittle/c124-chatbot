@@ -258,7 +258,7 @@ class Chatbot:
 
         while size < len(tokens):    
             for i in range(len(tokens)):
-                substr = " ".join(tokens[i:i+size])
+                substr = " ".join(tokens[i:i+size]).strip('"')
                 if size == 1 and tokens[i] in ['i', 'a']:
                     continue
 

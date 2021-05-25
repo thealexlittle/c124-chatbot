@@ -159,8 +159,8 @@ class Chatbot:
         # CHECK IF THE USER WANTS TO HEAR ANOTHER RECOMMENDATION
         if self.recommendation_made:
             lower_response = line.lower()
-            affirmations = ['yes', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely']
-            refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay']
+            affirmations = ['yes', 'yess', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely', 'i guess']
+            refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay', 'n', 'noo']
             if lower_response in affirmations:
                 return self.recommend_movie()
             if lower_response in refutations:

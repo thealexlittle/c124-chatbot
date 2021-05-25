@@ -119,7 +119,7 @@ class Chatbot:
         movies = []
         for id in title_ids:
             movies.append(self.titles[id][0])
-        return 'I found multiple results for your input. Which movie did you mean?' + movies
+        return 'I found multiple results for your input. Which movie did you mean? ' + " ,".join(movies)
 
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
@@ -179,7 +179,7 @@ class Chatbot:
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
-            title_ids = disambiguate(line, title_ids)
+            title_ids = self.disambiguate(line, title_ids)
             self.user_ratings[title_ids[0]] = sentiment
             
         input_titles = self.extract_titles(line)
@@ -442,7 +442,7 @@ class Chatbot:
                         res.append(substr)
             size += 1
         
-
+        if res == []: return res
         return [max(res)]
 
     def find_movies_by_title(self, title):
@@ -482,7 +482,7 @@ class Chatbot:
                 if s_t1 in s_t2:
                     return s_t1.split()[0] == s_t2.split()[0]
                 else:
-                    alt_t2 = re.search(r'\(([\w][\D][^(]+)\)',t2)
+                    alt_t2 = re.search(r'\(a.k.a([\w][\D][^(]+)\)',t2)
                     if alt_t2 is not None:
                         return t1.lower().strip() in alt_t2.group(1).lower().strip()                    
                     return False
@@ -499,10 +499,9 @@ class Chatbot:
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
             if title.lower() in self.titles[id][0].lower():
-                #print(self.titles[id][0])
                 if compare_years(title, self.titles[id][0]): 
+                    print(self.titles[id][0])
                     ids.append(id)
-        
         return ids
 
     def extract_sentiment(self, preprocessed_input):

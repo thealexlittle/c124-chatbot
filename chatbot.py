@@ -26,6 +26,8 @@ class Chatbot:
         self.input_titles_cpy = []
         self.line = ""
         self.recommendation_made = False
+        self.spellchecked = False
+        self.clarified = False
 
         self.affirmations = ['yes', 'yess', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely', 'i guess']
         self.refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay', 'n', 'noo']
@@ -127,7 +129,7 @@ class Chatbot:
     def unclear_sentiment_response(self, movie):
         return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
     
-    def spellcheck_response(input_titles, line):
+    def spellcheck_response(self, input_titles, line):
         #When len(input_titles) is 0, it means that either there were no movies in line the user provided or that there
         # is a mispelled movie in quotes 
             #a second pass through the line to see if there was a movie title in it that was just mispelled
@@ -170,13 +172,6 @@ class Chatbot:
             elif(line.lower() in self.refutations):
                 self.user_responding = False
                 return "Oh, you may have spelled the movie incorrectly. Please check your spelling and tell me what you thought about a movie! "
-            '''           
-            elif(self.user_responding and line[0].lower() == 'y'):
-                self.user_responding = False
-                input_titles = self.input_titles_cpy
-                line = self.line 
-            ''' 
-        
 
 
     ############################################################################
@@ -224,11 +219,12 @@ class Chatbot:
             if lower_response in self.refutations:
                 return self.prompt_for_info()
 
-        if self.user_responding and line in affirmations:
+        if self.user_responding and line in self.affirmations:
            self.user_responding = False
            input_titles = self.input_titles_cpy
+           self.spellchecked = True 
         
-        if self.user_responding:
+        if self.user_responding and line not in self.affirmations:
             return self.spellcheck_response([], line)
 
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
@@ -236,8 +232,10 @@ class Chatbot:
             self.clarifying = False 
             title_ids = disambiguate(line, title_ids)
             self.user_ratings[title_ids[0]] = sentiment
-            
-        input_titles = self.extract_titles(line)
+            self.clarified = True
+
+        if not self.spellchecked and not self.clarified:    
+            input_titles = self.extract_titles(line)
         sentiments = []
         sentiment = 0
 
@@ -256,19 +254,20 @@ class Chatbot:
         
         title_ids = []
         # GRAB TITLE IDS FOR A SINGLE MOVIE
-        if not self.creative or len(input_titles) == 1:
+        if not self.clarified and (not self.creative or len(input_titles) == 1):
             title_ids = self.find_movies_by_title(input_titles[0])
         # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
-        else:
+        elif not self.clarified:
             for title in input_titles:
                 title_ids.extend(self.find_movies_by_title(title))
 
+        self.clarified = False 
         # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
         if len(title_ids) > 1 and not self.creative:
             return 'Sorry, I cannot find the requested movie. Can you be more specific?'
         
         if len(title_ids) == 0 and self.creative:
-            return self.spellcheck_response(input_titles)
+            return self.spellcheck_response(input_titles, line)
 
         # MORE TITLE IDS FOUND THAN TITLES INPUTTED IN CREATIVE MODE
         if len(title_ids) != len(input_titles) and self.creative:
@@ -278,9 +277,11 @@ class Chatbot:
         
         # FIND SENTIMENT OF SINGLE MOVIE IN NON-CREATIVE MODE
         if not self.creative or len(input_titles) == 1:
+            if self.spellchecked:
+                line = self.line
             sentiment = self.extract_sentiment(line)
             if sentiment == 0:
-                return self.unclear_sentiment_response(input_titles[0], line)
+                return self.unclear_sentiment_response(input_titles[0])
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
         if len(sentiments) != 0:
@@ -632,14 +633,11 @@ class Chatbot:
         ]:
             if title.find(w) == 0:
                 title = rearrange(w, title)
-            
-        print(title)
 
         potential_movies = self.find_movies_closest_to_title(title, max_distance)
         
         if(len(potential_movies) != 0):
             index = potential_movies[0]
-            print(index)
             movie_name = self.titles[index][0]
             movie_name = movie_name[0: len(movie_name)-6].strip()
 

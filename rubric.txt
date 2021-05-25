@@ -13,15 +13,15 @@ FEATURE - Identifying movies without quotation marks and correct capitalization 
 FEATURE - Alternate/foreign titles: YES
 FEATURE - Disambiguation (part 1): YES
 FEATURE - Fine-grained sentiment extraction: YES
-FEATURE - Spell-correcting fallback for find_movies_by_title: NO
+FEATURE - Spell-correcting fallback for find_movies_by_title: YES
 FEATURE - Extracting sentiment with multiple-movie input: NO
 FEATURE - Disambiguation (part 2): YES
 FEATURE - Disambiguation (part 3): YES
-FEATURE - Dialogue for spell-checking: NO
-FEATURE - Dialogue for disambiguation: NO
+FEATURE - Dialogue for spell-checking: YES
+FEATURE - Dialogue for disambiguation: YES
 FEATURE - Communicating sentiments and movies extracted to the user given multiple-movie input: YES
 FEATURE - Understanding references to things said previously: YES
-FEATURE - Responding to arbitrary input: NO
+FEATURE - Responding to arbitrary input: YES
 FEATURE - Speaking very fluently: YES
 FEATURE - Identifying and responding to emotions: NO
 Did not implement any of the above features: NO

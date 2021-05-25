@@ -231,8 +231,8 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        if self.creative is False:
-            input_titles = re.findall(r'"([^"]*)"', preprocessed_input)
+        input_titles = re.findall(r'"([^"]*)"', preprocessed_input)
+        if self.creative is False or len(input_titles) != 0:
             return input_titles
 
         def rearrange(w, title):
@@ -258,15 +258,17 @@ class Chatbot:
 
         while size < len(tokens):    
             for i in range(len(tokens)):
-                substr = " ".join(tokens[i:i+size]).strip('"')
+                substr = " ".join(tokens[i:i+size])
                 if size == 1 and tokens[i] in ['i', 'a']:
                     continue
 
                 if check_titles(substr) and substr not in res:
+                        substr.capitalize()
                         res.append(substr)
             size += 1
+        
 
-        return res
+        return [max(res)]
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
@@ -583,7 +585,12 @@ class Chatbot:
         for candidate in candidates:
             # Check without year if year not given 
             # Check with year if year is given
-            if clarification in self.titles[candidate][0]:
+            title = self.titles[candidate][0]
+            year = re.search(r'([\d]{4})', title)
+            if year is not None and year.group(0) in clarification:
+                ids.append(candidate)
+                continue
+            if clarification in title.split("(")[0]:
                 ids.append(candidate)
         return ids
 

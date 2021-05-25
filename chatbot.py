@@ -20,6 +20,9 @@ class Chatbot:
 
         self.creative = creative
         self.clarifying = False
+        self.user_responding = False 
+        self.input_titles_cpy = []
+        self.line = ""
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -126,6 +129,8 @@ class Chatbot:
         # directly based on how modular it is, we highly recommended writing   #
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
+        
+
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
         else:
@@ -140,10 +145,59 @@ class Chatbot:
         input_titles = self.extract_titles(line)
         if len(input_titles) == 0 and not self.creative:
            return "Sorry, I don't understand. Tell me about a movie that you have seen."
+        
+                                         ##### dialogue for spell checking in creative mode #####
+        #When len(input_titles) is 0, it means that either there were no movies in line the user provided or that there
+        # is a mispelled movie in quotes 
         if len(input_titles) == 0 and self.creative:
-            #why are we doing something other than this in extract_titles when self.creative is off ? 
+
+            #a second pass through the line to see if there was a movie title in it that was just mispelled
             input_titles = re.findall(r'"([^"]*)"', line)
-            return self.spellcheck(input_titles, 3)
+
+            #in one of the two cases mentioned above the function definition. 
+            #we also keep track of if the user is currently responding to the bot (i.e the second line in the example run for
+            #this addition in creative mode)
+            if(len(input_titles) == 0 and self.user_responding == False):
+                 return  "I'm sorry, I don't think I understand that. Please tell me your thoughts about a movie you have seen."
+
+            #stores the user's input for later access to extract sentiment 
+            if(self.user_responding == False):
+                self.input_titles_cpy = input_titles.copy()
+                self.line = line 
+
+
+            if(len(input_titles) != 0):
+                #finds one movie with the minimum edit distance between the entry in the input_titles array 
+                input_titles = self.spellcheck(input_titles, 3)
+
+                if(len(input_titles) == 0):
+                    return "Sorry, I am unfamiliar with that movie. Please make sure you're spelling it correctly and try again."
+                
+                #these two checks store the current line and input into copies for later access 
+
+                elif(input_titles == self.input_titles_cpy):
+                    self.input_titles_cpy = input_titles.copy()
+                    self.line =  line 
+                    self.user_responding = True
+                    return "You mentioned " + input_titles[0] + " ,correct?"
+
+                else:
+                    self.input_titles_cpy = input_titles.copy()
+                    self.line = line
+                    self.user_responding = True
+                    return "Did you mean to say " + input_titles[0] + "?"
+            
+            elif(self.user_responding and line[0].lower() != 'y' and line[0].lower() != 'n'):
+                return "Please answer 'yes' or 'no'. "
+            elif(line[0].lower() == 'n'):
+                self.user_responding = False
+                return "Oh, you may have spelled the movie incorrectly. Please check your spelling and tell me what you thought about a movie! "
+            elif(self.user_responding and line[0].lower() == 'y'):
+                self.user_responding = False
+                input_titles = self.input_titles_cpy
+                line = self.line 
+               
+
         if len(input_titles) > 1:
             return "Please tell me about one movie at a time. Go ahead."
         # handle case of when they are updating their rating (want to do -=1 for counter)
@@ -431,13 +485,47 @@ class Chatbot:
 
     #Helper function for spellchecking user input
     def spellcheck(self,titles, max_distance):
-        potential_movies = self.find_movies_closest_to_title(titles[0], max_distance)
+        # Rearrange input title to match database entries
+        # Changes the input title to resemble the database entry: <Title>, *An or The* (Year)
+        # ex. The Notebook (2004) -> Notebook, The (2004) 
+        
+        #if(len(titles) == 0):
+            
+        title = titles[0]
+        og_title = title
+        #print(title)
+        def rearrange(w, title):
+            if title.find("(") == -1:
+                return (title.split(w, 1)[1] + ", " + w).strip()
+            title = title.split(w,1)[1]
+            year_index = title.find("(")
+            return title[:year_index-1] + ", "+ w + title[year_index:]
+        
+        # Handle the case that an input title begins with "An" or "The" 
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ',
+        'the', 'an', 'la', 'les', 'le', 'l'
+        ]:
+            if title.find(w) == 0:
+                title = rearrange(w, title)
+            
+        print(title)
+
+        potential_movies = self.find_movies_closest_to_title(title, max_distance)
         
         if(len(potential_movies) != 0):
             index = potential_movies[0]
-            return "Did you mean " + self.titles[index][0] + " ?"
+            print(index)
+            movie_name = self.titles[index][0]
+            movie_name = movie_name[0: len(movie_name)-6].strip()
 
-        return "Sorry, I am unfamiliar with that movie. Are you sure you're spelling it correctly?"
+            if(movie_name == title):
+                #return "You mentioned " + og_title + " ,correct?"
+                return [og_title]
+            #return "Did you mean " + self.titles[index][0] + " ?"
+            return [self.titles[index][0]]
+
+        return []
+        #return "Sorry, I am unfamiliar with that movie. Are you sure you're spelling it correctly?"
 
 
     def find_movies_closest_to_title(self, title, max_distance=3):

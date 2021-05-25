@@ -144,7 +144,6 @@ class Chatbot:
                 self.input_titles_cpy = input_titles.copy()
                 self.line = line 
 
-
             if(len(input_titles) != 0):
                 #finds one movie with the minimum edit distance between the entry in the input_titles array 
                 input_titles = self.spellcheck(input_titles, 3)
@@ -230,13 +229,13 @@ class Chatbot:
            input_titles = self.input_titles_cpy
         
         if self.user_responding:
-            return spellcheck_response([], line)
+            return self.spellcheck_response([], line)
 
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
             title_ids = disambiguate(line, title_ids)
-            user_ratings[title_ids[0]] = sentiment
+            self.user_ratings[title_ids[0]] = sentiment
             
         input_titles = self.extract_titles(line)
         sentiments = []
@@ -246,7 +245,7 @@ class Chatbot:
         if len(input_titles) == 0 and not self.creative:
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
         if len(input_titles) == 0 and self.creative:
-            return spellcheck_response(input_titles)
+            return self.spellcheck_response(input_titles)
 
         # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
         if self.creative and len(input_titles) > 1:
@@ -263,9 +262,10 @@ class Chatbot:
                 return self.unclear_sentiment_response(input_titles[0], line)
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
-        for i in range(len(sentiments)):
-            if sentiments[i] == 0:
-                return self.unclear_sentiment_response(sentiments[i][0])
+        if len(sentiments) != 0:
+            for i in range(len(sentiments)):
+                if sentiments[i] == 0:
+                    return self.unclear_sentiment_response(sentiments[i][0])
 
         title_ids = []
         # GRAB TITLE IDS FOR A SINGLE MOVIE
@@ -286,7 +286,7 @@ class Chatbot:
             return self.prompt_for_clarification(title_ids)
         
         # UPDATE USER RATINGS IN NON-CREATIVE MODE
-        if not self.creative:
+        if not self.creative or len(input_titles) == 1:
             self.user_ratings[title_ids[0]] = sentiment
             self.input_counter += 1
         # UPDATE USER RATINGS IN CREATIVE MODE

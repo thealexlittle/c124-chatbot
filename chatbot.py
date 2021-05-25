@@ -559,13 +559,12 @@ class Chatbot:
         power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
-            word_no_comma = word.rstrip(",")
-            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
+            word_no_punc = word.rstrip(",.")
+            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
             if stem.endswith('i'):
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
                 in_quotes = True
-            #if word.endswith("\"") or "\"" in word:
             if word.endswith("\""):
                 in_quotes = False
                 continue
@@ -579,10 +578,10 @@ class Chatbot:
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
+                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
                         power = 2
-                if word_no_comma in self.sentiment:
-                    if self.sentiment[word_no_comma] == "pos":
+                if word_no_punc in self.sentiment:
+                    if self.sentiment[word_no_punc] == "pos":
                         count += 1 * negate
                     else:
                         count += -1 * negate
@@ -598,6 +597,8 @@ class Chatbot:
         elif count < 0:
             return -1 * power
         return 0
+
+    
 
     def extract_sentiment_for_movies(self, preprocessed_input):
         """Creative Feature: Extracts the sentiments from a line of
@@ -620,7 +621,84 @@ class Chatbot:
         :returns: a list of tuples, where the first item in the tuple is a movie
         title, and the second is the sentiment in the text toward that movie
         """
-        pass
+        #don't need to consider the case where some movies are in the database while the rest are not
+        title_array = extract_titles(preprocessed_input);
+        if len(title_array) == 1:
+            return [(title_array[0], extract_sentiment(preprocessed_input))]
+
+        stemmer = PorterStemmer()
+        split_input = preprocessed_input.lower().split()
+        negate = 1
+        num_conjunctions = 0
+        count = 0
+        in_quotes = False
+        power = 1
+        conjunctions = ['and', 'nor', 'but', 'or', 'yet']
+        neg_list = ["no", "not", "rather", "couldn't", "wasn't", "didn't", "wouldn't", "shouldn't", "weren't", "don't", "doesn't", "haven't", "hasn't", "won't", "wont", "hadn't", "never", "none", "nobody", "nothing", "neither", "nowhere", "isn't", "can't", "cannot", "mustn't", "mightn't", "shan't", "without", "needn't"]
+        power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
+        sentiment_list = []
+        for word in split_input:
+            word = word.strip()
+            word_no_punc = word.rstrip(",.")
+            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
+            if stem.endswith('i'):
+                stem = stem[:-1] + 'y'
+            if word.startswith("\""):
+                in_quotes = True
+            if word.endswith("\""):
+                in_quotes = False
+                continue
+            if in_quotes:
+                continue
+            if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
+                negate = -1  # or have negate * -1
+            else:
+                has_comma = False
+                # maybe include other punctuation? 
+                if word.endswith(","):
+                    has_comma = True
+                if self.creative:
+                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
+                        power = 2
+                    if word_no_punc in conjunctions or stem in conjunctions:
+                        if (count == 0):
+                            if num_conjunctions != 0:
+                                sentiment_list.append(sentiment_list[num_conjunctions - 1])
+                            else:
+                                sentiment_list.append(0)
+                        else:
+                            sentiment_list.append(count)
+                        count = 0
+                        num_conjunctions += 1
+                if word_no_punc in self.sentiment:
+                    if self.sentiment[word_no_punc] == "pos":
+                        count += 1 * negate
+                    else:
+                        count += -1 * negate
+                elif stem in self.sentiment:
+                    if self.sentiment[stem] == "pos":
+                        count += 1 * negate
+                    else:
+                        count += -1 * negate  
+                if has_comma:
+                    negate = 1
+                    
+        if (count == 0):
+            sentiment_list.append(sentiment_list[num_conjunctions - 1])
+        else:
+            sentiment_list.append(count)
+
+        res = []
+        i = 0
+        for title in title_array:
+            curr_count = 0
+            if sentiment_list[i] > 0:
+                curr_count = 1 * power
+            elif sentiment_list[i] < 0:
+                curr_count = -1 * power
+            res.append((title, curr_count))
+            i += 1
+        return res
 
     #Helper function for spellchecking user input
     def spellcheck(self,titles, max_distance):

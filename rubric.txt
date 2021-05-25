@@ -14,7 +14,7 @@ FEATURE - Alternate/foreign titles: YES
 FEATURE - Disambiguation (part 1): YES
 FEATURE - Fine-grained sentiment extraction: YES
 FEATURE - Spell-correcting fallback for find_movies_by_title: YES
-FEATURE - Extracting sentiment with multiple-movie input: NO
+FEATURE - Extracting sentiment with multiple-movie input: YES
 FEATURE - Disambiguation (part 2): YES
 FEATURE - Disambiguation (part 3): YES
 FEATURE - Dialogue for spell-checking: YES

@@ -53,7 +53,7 @@ class Chatbot:
         # TODO: Write a short greeting message                                 #
         ########################################################################
 
-        greeting_message = "How can I help you?"
+        greeting_message = "Hello there! Tell me about a movie you liked or disliked. \n After supplying information about 5 movies, I will recommend some movies to you!"
 
         ########################################################################
         #                             END OF YOUR CODE                         #
@@ -68,7 +68,7 @@ class Chatbot:
         # TODO: Write a short farewell message                                 #
         ########################################################################
 
-        goodbye_message = "Have a nice day!"
+        goodbye_message = "Happy movie watching! \n Come back soon and tell me all about what you watched!"
 
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -138,14 +138,18 @@ class Chatbot:
         # CHECK IF THE USER WANTS TO HEAR ANOTHER RECOMMENDATION
         if self.recommendation_made:
             lower_response = line.lower()
-            affirmations = ['yes', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok']
+            affirmations = ['yes', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok', 'yup', 'yep', 'alright', 'very well', 'of course', 'by all means', 'certainly', 'absolutely', 'okie', 'okie dokie', 'okey dokey', 'okie-dokie', 'okey-dokey', 'surely']
+            refutations = ['no', 'no thanks', 'no thank you', 'nah', 'nope', 'nay']
             if lower_response in affirmations:
                 return self.recommend_movie()
-        
+            if lower_response in refutations:
+                return self.prompt_for_info()
+
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
             title_ids = disambiguate(line, title_ids)
+            user_ratings[title_ids[0]] = sentiment
             
         input_titles = self.extract_titles(line)
         sentiments = []
@@ -204,15 +208,12 @@ class Chatbot:
         if self.input_counter < 5:
             if not self.creative or len(title_ids) == 1:
                 return self.echo_sentiment(sentiment, input_titles[0]) + self.prompt_for_info()
-            else:
+            #else:
                 # RESPONSE FOR ACKNOWLEDGING MULTIPLE MOVIES AND HOW THE USER RATED THEM
         else:
             self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
             return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
         
-
-
-
 
         '''
         if self.clarifying:
@@ -221,11 +222,6 @@ class Chatbot:
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
-<<<<<<< HEAD
-        if len(input_titles) == 0:
-            return "Sorry, I don't understand. Tell me about a movie that you have seen."
-        if len(input_titles) > 1 and not self.creative:
-=======
         if len(input_titles) == 0 and not self.creative:
            return "Sorry, I don't understand. Tell me about a movie that you have seen."
         if len(input_titles) == 0 and self.creative:
@@ -233,7 +229,6 @@ class Chatbot:
             input_titles = re.findall(r'"([^"]*)"', line)
             return self.spellcheck(input_titles, 3)
         if len(input_titles) > 1:
->>>>>>> 721afa44d135dab1b51f8e3b631f96753f8de80f
             return "Please tell me about one movie at a time. Go ahead."
         # handle case of when they are updating their rating (want to do -=1 for counter)
         input_sentiment = self.extract_sentiment(line)
@@ -269,7 +264,7 @@ class Chatbot:
             recommended_movie = self.titles[recommended_movie][0]
             self.recommendation_counter += 1
             self.recommendation_made = True
-            return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
+            return 'I suggest you watch ' + recommended_movie + '. \n Would you like to hear another recommendation? (Or enter :quit if you are done.)'
         else:
             self.recommendation_made = False
             return self.prompt_for_info()
@@ -420,7 +415,7 @@ class Chatbot:
         # Iterate through databse and add matching movies to the resulting array
         for id in range(len(self.titles)):
             if title.lower() in self.titles[id][0].lower():
-                print(self.titles[id][0])
+                #print(self.titles[id][0])
                 if compare_years(title, self.titles[id][0]): 
                     ids.append(id)
         
@@ -491,9 +486,6 @@ class Chatbot:
                         count += -1 * negate  
                 if has_comma:
                     negate = 1
-        print(count)
-        print(power)
-        print(negate)
         if count > 0:
             return 1 * power
         elif count < 0:
@@ -678,11 +670,6 @@ class Chatbot:
         """
         ids = []
         for candidate in candidates:
-<<<<<<< HEAD
-            if clarification == self.titles[candidate][0]:
-                #ids.append(candidate)
-                return candidate
-=======
             # Check without year if year not given 
             # Check with year if year is given
             title = self.titles[candidate][0]
@@ -692,7 +679,6 @@ class Chatbot:
                 continue
             if clarification in title.split("(")[0]:
                 ids.append(candidate)
->>>>>>> 721afa44d135dab1b51f8e3b631f96753f8de80f
         return ids
 
     ############################################################################
@@ -805,34 +791,21 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        similarities = np.zeros((len(self.ratings), len(self.ratings)))
         recommendations = []
-        # compute all the similarities
-        for i in range(len(ratings_matrix)):
-            if user_ratings[i] == 0:
-                continue
-            for j in range(len(ratings_matrix)):
-                #if i != j:
-                cos_sim = self.similarity(ratings_matrix[i], ratings_matrix[j])
-                similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
         for i in range(len(ratings_matrix)):
             # want to calculate projected ratings for each movie that the user has not yet seen
-            #if user_ratings[i] != 0:
-                #continue
-            projected_rating = 0
+            if user_ratings[i] != 0:
+                continue
+            projected_rating = 0.0
             for j in range(len(ratings_matrix)):
-                # compare the movie to every other movie
-                # check that there is a similarity score computed + that the user has rated movie j
-                #if i == j or user_ratings[i] != 0 or user_ratings[j] == 0:
-                    #continue      
-                projected_rating += (similarities[i][j] * user_ratings[j])
+                if user_ratings[j] == 0:
+                    continue
+                cos_sim = self.similarity(ratings_matrix[i, :], ratings_matrix[j, :])      
+                projected_rating += (cos_sim * user_ratings[j])
             projected_ratings.append((projected_rating, i))
-            # need to also keep track of the indices of the movies
-            # do tuples, and sort by the rating, but then insert the indices into the index 
         projected_ratings.sort(key=lambda tup: tup[0], reverse=True)
-        print(projected_ratings)
         for i in range(k):
             recommendations.append(projected_ratings[i][1])
         ########################################################################
@@ -864,11 +837,11 @@ class Chatbot:
         chatbot can do and how the user can interact with it.
         """
         return """
-        Your task is to implement the chatbot as detailed in the PA6
-        instructions.
-        Remember: in the starter mode, movie names will come in quotation marks
-        and expressions of sentiment will be simple!
-        TODO: Write here the description for your own chatbot!
+        Welcome to the Movie Recommendation Chat Bot! Looking for a movie to watch? 
+        Don't know where to start? Let me know about which movies you like and which 
+        movies you do not like, and I will give you some recommendations based on your
+        preferences! Please be sure to tell me about one movie at a time and use double
+        quotation marks when telling me the name of a movie. 
         """
 
 

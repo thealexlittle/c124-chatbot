@@ -20,16 +20,20 @@ FEATURE - Disambiguation (part 3): YES
 FEATURE - Dialogue for spell-checking: YES
 FEATURE - Dialogue for disambiguation: YES
 FEATURE - Communicating sentiments and movies extracted to the user given multiple-movie input: YES
-FEATURE - Understanding references to things said previously: YES
 FEATURE - Responding to arbitrary input: YES
-FEATURE - Speaking very fluently: YES
 FEATURE - Identifying and responding to emotions: NO
 Did not implement any of the above features: NO
 
 #########################################################################################
 # Team Contributions                                                                    #
 #########################################################################################
-Alonzo - Sentiment extraction for both standard and creative modes.
+Alonzo - Sentiment extraction for both standard and creative modes, sentiment extraction for multiple inputs.
+
+Kimberly - Put each piece together within the process function, recommend, dialogue for disambiguate, and dialogue for extracting multiple sentiments.
+
+Alex - Worked on extract_titles, find_movies_by_title, and disambiguate.
+
+Rick - Created the binarize function, the find_movies_closest_to_title function and implemented the spell checking dialogue. 
 
 
 #########################################################################################
@@ -47,6 +51,10 @@ that they were written by a human.
 
 What are some possible ramifications of anthropomorphizing chatbot systems? Can you think of any ways that 
 engineers could ensure that users can easily distinguish the chatbot responses from those of a human?
+
+Anthropomorphizing chatbot systems can be consequential for the mental health of their users. This can manifest itself through unhealthy attachments to and trust in chatbots. While the systems may be fed training data that has been monitored to ensure that it contains no harmful sources, the engineers themselves cannot always know what the systems can output with the data provided, and because not every chatbot response can be monitored before being printed, there is a chance that the chatbot may response with harmful messages that may provide bad advice, be insulting, or even promote self-harm. Thus, chatbots that elicit trust from their users as if it were a human-to-human interaction can be dangerous. 
+
+Engineers could design chatbot systems such that human qualities that people often think robots are incapable of understanding are not attempted to be replicated in the chatbots. Understanding human emotions, for example, is something that people think programs aren’t capable of replicating to a convincing standard. Thus, attempts to replicate such emotions in chatbot systems should either be avoided, or the responses replicate emotions should be flagged to indicate that it is a programmed response. Another thing that engineers can do is modify the training data for a chatbot such that the data is made non-human-like, so the responses generated will be clearly non-human as well. 
 
 
 

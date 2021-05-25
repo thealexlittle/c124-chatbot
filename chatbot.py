@@ -241,11 +241,10 @@ class Chatbot:
         sentiments = []
         sentiment = 0
 
+        print(input_titles)
         # NO TITLES FOUND
         if len(input_titles) == 0 and not self.creative:
             return "Sorry, I don't understand. Tell me about a movie that you have seen."
-        if len(input_titles) == 0 and self.creative:
-            return self.spellcheck_response(input_titles)
 
         # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
         if self.creative and len(input_titles) > 1:
@@ -254,6 +253,28 @@ class Chatbot:
         # MORE THAN ONE TITLE FOUND IN NON-CREATIVE MODE
         if not self.creative and len(input_titles) > 1:
             return "Please tell me about one movie at a time. Go ahead."
+        
+        title_ids = []
+        # GRAB TITLE IDS FOR A SINGLE MOVIE
+        if not self.creative or len(input_titles) == 1:
+            title_ids = self.find_movies_by_title(input_titles[0])
+        # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
+        else:
+            for title in input_titles:
+                title_ids.extend(self.find_movies_by_title(title))
+
+        # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
+        if len(title_ids) > 1 and not self.creative:
+            return 'Sorry, I cannot find the requested movie. Can you be more specific?'
+        
+        if len(title_ids) == 0 and self.creative:
+            return self.spellcheck_response(input_titles)
+
+        # MORE TITLE IDS FOUND THAN TITLES INPUTTED IN CREATIVE MODE
+        if len(title_ids) != len(input_titles) and self.creative:
+            self.clarifying = True
+            return self.prompt_for_clarification(title_ids)
+        
         
         # FIND SENTIMENT OF SINGLE MOVIE IN NON-CREATIVE MODE
         if not self.creative or len(input_titles) == 1:
@@ -267,24 +288,6 @@ class Chatbot:
                 if sentiments[i] == 0:
                     return self.unclear_sentiment_response(sentiments[i][0])
 
-        title_ids = []
-        # GRAB TITLE IDS FOR A SINGLE MOVIE
-        if not self.creative or len(input_titles) == 1:
-            title_ids = self.find_movies_by_title(input_titles[0])
-        # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
-        else:
-            for title in input_titles:
-                title_ids.extend(self.find_movies_by_title(title))
-
-        # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
-        if len(title_ids) > 1 and not self.creative:
-            return 'Sorry, I cannot find the requested movie. Can you be more specific?'
-
-        # MORE TITLE IDS FOUND THAN TITLES INPUTTED IN CREATIVE MODE
-        if len(title_ids) != len(input_titles) and self.creative:
-            self.clarifying = True
-            return self.prompt_for_clarification(title_ids)
-        
         # UPDATE USER RATINGS IN NON-CREATIVE MODE
         if not self.creative or len(input_titles) == 1:
             self.user_ratings[title_ids[0]] = sentiment

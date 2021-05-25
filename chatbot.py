@@ -20,6 +20,7 @@ class Chatbot:
 
         self.creative = creative
         self.clarifying = False
+        self.recommendation_made = False
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -93,6 +94,9 @@ class Chatbot:
         for id in title_ids:
             movies.append(self.titles[id][0])
         return 'I found multiple results for your input. Which movie did you mean?' + movies
+
+    def unclear_sentiment_response(self, movie):
+        return "I'm sorry, I'm not quite sure if you liked \"" + movie + "\". \n Tell me more about \"" + movie + '".'
         
 
 
@@ -130,8 +134,87 @@ class Chatbot:
             response = "I processed {} in creative mode!!".format(line)
         else:
             response = "I processed {} in starter mode!!".format(line)
-        # if the user says yes and dict is large enough, supply a recommendation
-        # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
+
+        # CHECK IF THE USER WANTS TO HEAR ANOTHER RECOMMENDATION
+        if self.recommendation_made:
+            lower_response = line.lower()
+            affirmations = ['yes', 'yeah', 'yea', 'ya', 'y', 'sure', 'okay', 'ok']
+            if lower_response in affirmations:
+                return self.recommend_movie()
+        
+        # CHECK IF THE RESPONSE WAS A CLARIFICATION
+        if self.clarifying:
+            self.clarifying = False 
+            title_ids = disambiguate(line, title_ids)
+            
+        input_titles = self.extract_titles(line)
+        sentiments = []
+        sentiment = 0
+
+        # NO TITLES FOUND
+        if len(input_titles) == 0:
+            return "Sorry, I don't understand. Tell me about a movie that you have seen."
+
+        # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
+        if self.creative and len(input_titles) > 1:
+            sentiments = extract_sentiment_for_movies(line)
+        
+        # MORE THAN ONE TITLE FOUND IN NON-CREATIVE MODE
+        if not self.creative and len(input_titles) > 1:
+            return "Please tell me about one movie at a time. Go ahead."
+        
+        # FIND SENTIMENT OF SINGLE MOVIE IN NON-CREATIVE MODE
+        if not self.creative:
+            sentiment = self.extract_sentiment(line)
+            if sentiment == 0:
+                return unclear_sentiment_response(input_titles[0])
+            
+        # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
+        for i in range(len(sentiments)):
+            if sentiments[i] == 0:
+                return unclear_sentiment_response(sentiments[i][0])
+
+        title_ids = []
+        # GRAB TITLE IDS FOR A SINGLE MOVIE
+        if not self.creative or len(input_titles) == 1:
+            title_ids = self.find_movies_by_title(input_titles[0])
+        # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
+        else:
+             title_ids = self.find_movies_by_title(input_titles)
+
+        # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
+        if len(title_ids) > 1 and not self.creative:
+            return 'Sorry, I cannot find the requested movie. Can you be more specific?'
+
+        # MULTIPLE TITLE-IDS FOUND IN CREATIVE MODE
+        if len(title_ids) > 1 and self.creative:
+            self.clarifying = True
+            return prompt_for_clarification(title_ids)
+        
+        # UPDATE USER RATINGS IN NON-CREATIVE MODE
+        if not self.creative:
+            self.user_ratings[title_ids[0]] = sentiment
+            self.input_counter += 1
+        # UPDATE USER RATINGS IN CREATIVE MODE
+        else:
+            for i in range(len(title_ids)):
+                self.user_ratings[title_ids[i]] = sentiments[i][1]
+                self.input_counter += 1
+        
+        if self.input_counter < 5:
+            if not self.creative or len(title_ids) == 1:
+                return self.echo_sentiment(sentiment, input_titles[0]) + self.prompt_for_info()
+            else:
+                # RESPONSE FOR ACKNOWLEDGING MULTIPLE MOVIES AND HOW THE USER RATED THEM
+        else:
+            self.recommendations.extend(self.recommend(np.array(self.user_ratings), self.ratings))
+            return "That's enough for me to make a recommendation.\n" + self.recommend_movie()
+        
+
+
+
+
+        '''
         if self.clarifying:
             self.clarifying = False 
             title_id = disambiguate(line, title_ids)
@@ -149,8 +232,8 @@ class Chatbot:
         # need to change to work for all lower
         title_ids = self.find_movies_by_title(input_titles[0])
         '''
-        for i in range(len(title_ids)):
-            self.user_ratings[title_ids[i]] = input_sentiment
+        #for i in range(len(title_ids)):
+         #   self.user_ratings[title_ids[i]] = input_sentiment
         '''
         if self.creative and len(title_ids) > 1:
             self.clarifying = True
@@ -167,6 +250,7 @@ class Chatbot:
         #                          END OF YOUR CODE                            #
         ########################################################################
         return response
+        '''
 
     def recommend_movie(self):
         # check if there are any more recommendations
@@ -174,8 +258,10 @@ class Chatbot:
             recommended_movie = self.recommendations[self.recommendation_counter]
             recommended_movie = self.titles[recommended_movie][0]
             self.recommendation_counter += 1
+            self.recommendation_made = True
             return 'u wld like ' + recommended_movie + '. wld u like to hear another recommendation?'
         else:
+            self.recommendation_made = False
             return self.prompt_for_info()
         ""
 
@@ -359,8 +445,8 @@ class Chatbot:
         power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
-            word_no_punc = word.rstrip(",.")
-            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
+            word_no_comma = word.rstrip(",")
+            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
             if stem.endswith('i'):
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
@@ -374,17 +460,15 @@ class Chatbot:
             if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
                 negate = -1  # or have negate * -1
             else:
-                print(word)
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
-                        print("power!!")
+                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
                         power = 2
-                if word_no_punc in self.sentiment:
-                    if self.sentiment[word_no_punc] == "pos":
+                if word_no_comma in self.sentiment:
+                    if self.sentiment[word_no_comma] == "pos":
                         count += 1 * negate
                     else:
                         count += -1 * negate
@@ -399,10 +483,8 @@ class Chatbot:
         print(power)
         print(negate)
         if count > 0:
-            print(1 * power)
             return 1 * power
         elif count < 0:
-            print(-1 * power)
             return -1 * power
         return 0
 

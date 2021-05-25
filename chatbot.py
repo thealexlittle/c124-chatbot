@@ -699,7 +699,6 @@ class Chatbot:
         similarities = np.zeros((len(self.ratings), len(self.ratings)))
         recommendations = []
         # compute all the similarities
-        print('COMPUTING SIMILARITIES')
         for i in range(len(ratings_matrix)):
             if user_ratings[i] == 0:
                 continue
@@ -709,9 +708,10 @@ class Chatbot:
                 similarities[i][j] = cos_sim
         # find the user's projected rating for each movie 
         projected_ratings = []
-        print('FINDING RATINGS!')
         for i in range(len(ratings_matrix)):
-            # want to calculate projected ratings for each movie 
+            # want to calculate projected ratings for each movie that the user has not yet seen
+            #if user_ratings[i] != 0:
+                #continue
             projected_rating = 0
             for j in range(len(ratings_matrix)):
                 # compare the movie to every other movie

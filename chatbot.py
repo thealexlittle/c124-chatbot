@@ -134,12 +134,16 @@ class Chatbot:
         # if line == 'Yes' or line == 'yes' or line == 'Yeah' or line == 'yeah':
         if self.clarifying:
             self.clarifying = False 
-            title_id = disambiguate(line, title_ids)
+            title_id = self.disambiguate(line, title_ids)
         if line[0].lower() == 'y' and self.input_counter >= 5:
             return self.recommend_movie()
         input_titles = self.extract_titles(line)
-        if len(input_titles) == 0:
-            return "Sorry, I don't understand. Tell me about a movie that you have seen."
+        if len(input_titles) == 0 and not self.creative:
+           return "Sorry, I don't understand. Tell me about a movie that you have seen."
+        if len(input_titles) == 0 and self.creative:
+            #why are we doing something other than this in extract_titles when self.creative is off ? 
+            input_titles = re.findall(r'"([^"]*)"', line)
+            return self.spellcheck(input_titles, 3)
         if len(input_titles) > 1:
             return "Please tell me about one movie at a time. Go ahead."
         # handle case of when they are updating their rating (want to do -=1 for counter)
@@ -154,7 +158,7 @@ class Chatbot:
         '''
         if self.creative and len(title_ids) > 1:
             self.clarifying = True
-            return prompt_for_clarification(title_ids)
+            return self.prompt_for_clarification(title_ids)
         self.input_counter += 1
         if self.input_counter < 5:
             # prompt user for more info
@@ -361,8 +365,8 @@ class Chatbot:
         power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
-            word_no_comma = word.rstrip(",")
-            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
+            word_no_punc = word.rstrip(",.")
+            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
             if stem.endswith('i'):
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
@@ -376,15 +380,17 @@ class Chatbot:
             if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
                 negate = -1  # or have negate * -1
             else:
+                print(word)
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
+                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
+                        print("power!!")
                         power = 2
-                if word_no_comma in self.sentiment:
-                    if self.sentiment[word_no_comma] == "pos":
+                if word_no_punc in self.sentiment:
+                    if self.sentiment[word_no_punc] == "pos":
                         count += 1 * negate
                     else:
                         count += -1 * negate
@@ -396,8 +402,10 @@ class Chatbot:
                 if has_comma:
                     negate = 1
         if count > 0:
+            print(1 * power)
             return 1 * power
         elif count < 0:
+            print(-1 * power)
             return -1 * power
         return 0
 
@@ -423,6 +431,17 @@ class Chatbot:
         title, and the second is the sentiment in the text toward that movie
         """
         pass
+
+    #Helper function for spellchecking user input
+    def spellcheck(self,titles, max_distance):
+        potential_movies = self.find_movies_closest_to_title(titles[0], max_distance)
+        
+        if(len(potential_movies) != 0):
+            index = potential_movies[0]
+            return "Did you mean " + self.titles[index][0] + " ?"
+
+        return "Sorry, I am unfamiliar with that movie. Are you sure you're spelling it correctly?"
+
 
     def find_movies_closest_to_title(self, title, max_distance=3):
         """Creative Feature: Given a potentially misspelled movie title,
@@ -478,7 +497,9 @@ class Chatbot:
             return title[:year_index-1] + ", "+ w + title[year_index:]
         
         # Handle the case that an input title begins with "An" or "The" 
-        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ']:
+        for w in ['The ', 'An ', 'La ', 'Les ', 'Le ', 'L ',
+        'the', 'an', 'la', 'les', 'le', 'l'
+        ]:
             if title.find(w) == 0:
                 title = rearrange(w, title)
 
@@ -487,7 +508,6 @@ class Chatbot:
         length_first = len(title)
         title_rev =  title[::-1]
         distances = []
-        #print(title)
      
         for i in range(len(titles)):
           #access index 1 of the other_title field to get the name
@@ -496,14 +516,11 @@ class Chatbot:
             other_title = other_title[0:length_orig-7].strip().lower()
             length_second = len(other_title)
             
-          #  print(other_title)
 
             index = i
           # get index of movie
 
             arr= np.zeros((length_first+1, length_second+1))
-           # if(i == 0):
-               # print(arr.shape)
             
             for i in range(length_first+1):
                 arr[i][0]= length_first - i 
@@ -511,8 +528,6 @@ class Chatbot:
             for i in range(length_second+1):
                 arr[length_first][i]= i 
 
-            #print(len(title))
-            #print(len(other_title))
 
             for i in range(length_first-1, -1, -1): 
                 for j in range(1,length_second+1):
@@ -520,35 +535,24 @@ class Chatbot:
                     bottom = arr[i+1][j] + 1
                     diagonal = arr[i+1][j-1]
 
-                   # print(title_rev)
-                   # print(other_title)
 
                     if title_rev[i] != other_title[j-1]:
-                      #  print(i)
-                      #  print(j)
                         diagonal += 2
 
                     arr[i][j] = min(left, bottom, diagonal)
             
-            #if (index == 0): 
-               # print(other_title)
-               # print(arr)
 
             
             distance = arr[0][length_second]
-            #print(distance)
-            #print(max_distance)
-            #add to the tuple the index of the movie
+
             if(distance <= max_distance):
                 distance_betweeen = (distance, other_title,index)
                 distances.append(distance_betweeen)
 
         distances = sorted(distances, key = lambda x: x[0])
-        #print(distances)
+
 
         if (len(distances) != 0):
-            #print("hello")
-            #print(len(distances))
             minimum = distances[0][0]
             final_list = [x[2] for x in distances if x[0] == minimum]
             return final_list

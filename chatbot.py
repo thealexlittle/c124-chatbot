@@ -148,8 +148,12 @@ class Chatbot:
         # CHECK IF THE RESPONSE WAS A CLARIFICATION
         if self.clarifying:
             self.clarifying = False 
+<<<<<<< HEAD
             title_ids = disambiguate(line, title_ids)
             user_ratings[title_ids[0]] = sentiment
+=======
+            title_ids = self.disambiguate(line, title_ids)
+>>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
             
         input_titles = self.extract_titles(line)
         sentiments = []
@@ -161,7 +165,7 @@ class Chatbot:
 
         # MORE THAN ONE TITLE FOUND IN CREATIVE MODE --> EXTRACT SENTIMENT FOR MULTIPLE MOVIES
         if self.creative and len(input_titles) > 1:
-            sentiments = extract_sentiment_for_movies(line)
+            sentiments = self.extract_sentiment_for_movies(line)
         
         # MORE THAN ONE TITLE FOUND IN NON-CREATIVE MODE
         if not self.creative and len(input_titles) > 1:
@@ -171,12 +175,12 @@ class Chatbot:
         if not self.creative:
             sentiment = self.extract_sentiment(line)
             if sentiment == 0:
-                return unclear_sentiment_response(input_titles[0])
+                return self.unclear_sentiment_response(input_titles[0])
             
         # CHECK IF SENTIMENTS WERE FOUND IN CREATIVE MODE
         for i in range(len(sentiments)):
             if sentiments[i] == 0:
-                return unclear_sentiment_response(sentiments[i][0])
+                return self.unclear_sentiment_response(sentiments[i][0])
 
         title_ids = []
         # GRAB TITLE IDS FOR A SINGLE MOVIE
@@ -184,6 +188,7 @@ class Chatbot:
             title_ids = self.find_movies_by_title(input_titles[0])
         # GRAB TITLE IDS FOR MOVIES IN CREATIVE MODE
         else:
+            # Should this be a loop?
              title_ids = self.find_movies_by_title(input_titles)
 
         # MULTIPLE TITLE-IDS FOUND IN NON-CREATIVE MODE
@@ -193,7 +198,7 @@ class Chatbot:
         # MULTIPLE TITLE-IDS FOUND IN CREATIVE MODE
         if len(title_ids) > 1 and self.creative:
             self.clarifying = True
-            return prompt_for_clarification(title_ids)
+            return self.prompt_for_clarification(title_ids)
         
         # UPDATE USER RATINGS IN NON-CREATIVE MODE
         if not self.creative:
@@ -668,17 +673,42 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
+        clarification = clarification.lower()
+        years = [(re.search(r'([\d]{4})', self.titles[c][0]).group(0),c) for c in candidates]
+        if 'recent' in clarification.lower():
+            years.sort(reverse=True, key= lambda x: x[0])
+            return [years[0][1]]
+        
         ids = []
+<<<<<<< HEAD
         for candidate in candidates:
             # Check without year if year not given 
             # Check with year if year is given
             title = self.titles[candidate][0]
             year = re.search(r'([\d]{4})', title)
             if year is not None and year.group(0) in clarification:
+=======
+        for i, candidate in enumerate(candidates):
+            title = self.titles[candidate][0].lower()
+            year = years[i][0] 
+            if year in clarification:
+>>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
                 ids.append(candidate)
-                continue
-            if clarification in title.split("(")[0]:
+            elif clarification in title.split("(")[0]:
                 ids.append(candidate)
+<<<<<<< HEAD
+=======
+            else:
+                sect = set(clarification.split()).intersection(title.split())
+                print(sect)
+                if sect is not None:
+                    sect = list(sect)
+                    if len(sect) == 1 and not ('the' in sect or 'one' in sect):
+                        ids.append(candidate)
+                    elif len(sect) > 2:
+                        ids.append(candidate)
+
+>>>>>>> 92273a6f4c414f1a733d54e1fff07a29a54ab7b4
         return ids
 
     ############################################################################

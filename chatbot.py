@@ -359,8 +359,8 @@ class Chatbot:
         power_list = ["really", "reeally", "loved", "love", "hate", "hated", "terrible", "amazing", "fantastic", "incredible", "dreadful", "horrible", "horrid", "horrendous"]
         for word in split_input:
             word = word.strip()
-            word_no_comma = word.rstrip(",")
-            stem = stemmer.stem(word_no_comma, 0, len(word_no_comma) - 1)
+            word_no_punc = word.rstrip(",.")
+            stem = stemmer.stem(word_no_punc, 0, len(word_no_punc) - 1)
             if stem.endswith('i'):
                 stem = stem[:-1] + 'y'
             if word.startswith("\""):
@@ -374,15 +374,17 @@ class Chatbot:
             if word in neg_list and not word.endswith(","): # if word in neg_list but ends in comma, negate would be positive
                 negate = -1  # or have negate * -1
             else:
+                print(word)
                 has_comma = False
                 # maybe include other punctuation? 
                 if word.endswith(","):
                     has_comma = True
                 if self.creative:
-                    if word_no_comma in power_list or stem in power_list or word.endswith("!"):
+                    if word_no_punc in power_list or stem in power_list or word.endswith("!"):
+                        print("power!!")
                         power = 2
-                if word_no_comma in self.sentiment:
-                    if self.sentiment[word_no_comma] == "pos":
+                if word_no_punc in self.sentiment:
+                    if self.sentiment[word_no_punc] == "pos":
                         count += 1 * negate
                     else:
                         count += -1 * negate
@@ -397,8 +399,10 @@ class Chatbot:
         print(power)
         print(negate)
         if count > 0:
+            print(1 * power)
             return 1 * power
         elif count < 0:
+            print(-1 * power)
             return -1 * power
         return 0
 
